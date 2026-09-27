@@ -34,7 +34,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Iterable
 
@@ -448,6 +448,13 @@ def add_position_features(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def add_player_pregame_features(p: pd.DataFrame) -> pd.DataFrame:
+    """
+    Build leakage-safe rolling player features in vectorized blocks.
+
+    The original implementation inserted ~100 columns one-by-one and repeated
+    the same groupby for every metric. This produces the exact same shifted
+    logic but is substantially faster and avoids a fragmented DataFrame.
+    """
     x = p.sort_values(
         ["player_id", "gameday", "season", "week", "game_id"]
     ).copy()
@@ -456,45 +463,72 @@ def add_player_pregame_features(p: pd.DataFrame) -> pd.DataFrame:
         if feature not in x.columns:
             x[feature] = np.nan
 
-        x[f"p3_{feature}"] = (
-            x.groupby("player_id", group_keys=False)[feature]
-            .transform(
-                lambda s: s.shift(1).rolling(
-                    PLAYER_SHORT_WINDOW,
-                    min_periods=1,
-                ).mean()
-            )
-        )
+    raw = x[PLAYER_RAW].apply(pd.to_numeric, errors="coerce")
 
-        x[f"p6_{feature}"] = (
-            x.groupby("player_id", group_keys=False)[feature]
-            .transform(
-                lambda s: s.shift(1).rolling(
-                    PLAYER_LONG_WINDOW,
-                    min_periods=MIN_PLAYER_HISTORY,
-                ).mean()
-            )
-        )
+    # All rolling windows use values from PRIOR games only.
+    shifted = raw.groupby(x["player_id"], sort=False).shift(1)
 
-        x[f"p6sd_{feature}"] = (
-            x.groupby("player_id", group_keys=False)[feature]
-            .transform(
-                lambda s: s.shift(1).rolling(
-                    PLAYER_LONG_WINDOW,
-                    min_periods=MIN_PLAYER_HISTORY,
-                ).std()
-            )
-        )
+    p3 = (
+        shifted.groupby(x["player_id"], sort=False)
+        .rolling(PLAYER_SHORT_WINDOW, min_periods=1)
+        .mean()
+        .reset_index(level=0, drop=True)
+        .add_prefix("p3_")
+    )
 
-        # Season-to-date, shifted so the current game never leaks.
-        x[f"season_{feature}"] = (
-            x.groupby(["player_id", "season"], group_keys=False)[feature]
-            .transform(
-                lambda s: s.shift(1).expanding(min_periods=1).mean()
-            )
+    p6 = (
+        shifted.groupby(x["player_id"], sort=False)
+        .rolling(
+            PLAYER_LONG_WINDOW,
+            min_periods=MIN_PLAYER_HISTORY,
         )
+        .mean()
+        .reset_index(level=0, drop=True)
+        .add_prefix("p6_")
+    )
 
-    x["player_games_before"] = x.groupby("player_id").cumcount()
+    p6sd = (
+        shifted.groupby(x["player_id"], sort=False)
+        .rolling(
+            PLAYER_LONG_WINDOW,
+            min_periods=MIN_PLAYER_HISTORY,
+        )
+        .std()
+        .reset_index(level=0, drop=True)
+        .add_prefix("p6sd_")
+    )
+
+    season_shifted = raw.groupby(
+        [x["player_id"], x["season"]],
+        sort=False,
+    ).shift(1)
+
+    season_avg = (
+        season_shifted.groupby(
+            [x["player_id"], x["season"]],
+            sort=False,
+        )
+        .expanding(min_periods=1)
+        .mean()
+        .reset_index(level=[0, 1], drop=True)
+        .add_prefix("season_")
+    )
+
+    x = pd.concat(
+        [
+            x,
+            p3.reindex(x.index),
+            p6.reindex(x.index),
+            p6sd.reindex(x.index),
+            season_avg.reindex(x.index),
+        ],
+        axis=1,
+    ).copy()
+
+    x["player_games_before"] = x.groupby(
+        "player_id",
+        sort=False,
+    ).cumcount()
     x = add_position_features(x)
     return x
 
@@ -909,6 +943,97 @@ def normal_cdf(z: float) -> float:
     return 0.5 * (1.0 + math.erf(z / math.sqrt(2.0)))
 
 
+def odds_implied_probability(value) -> float:
+    """
+    Accept American odds (e.g. -110/+125) and also tolerate decimal odds.
+    """
+    try:
+        odds = float(value)
+    except (TypeError, ValueError):
+        return np.nan
+
+    if not np.isfinite(odds):
+        return np.nan
+
+    # Standard American odds.
+    if odds <= -100:
+        return abs(odds) / (abs(odds) + 100.0)
+    if odds >= 100:
+        return 100.0 / (odds + 100.0)
+
+    # Defensive support for decimal feeds.
+    if 1.0 < odds < 100:
+        return 1.0 / odds
+
+    return np.nan
+
+
+def odds_profit_per_unit(value) -> float:
+    """
+    Net profit on a one-unit stake if the wager wins.
+    """
+    try:
+        odds = float(value)
+    except (TypeError, ValueError):
+        return np.nan
+
+    if not np.isfinite(odds):
+        return np.nan
+
+    if odds <= -100:
+        return 100.0 / abs(odds)
+    if odds >= 100:
+        return odds / 100.0
+    if odds > 1.0:
+        return odds - 1.0
+
+    return np.nan
+
+
+def residual_pool(
+    oof: pd.DataFrame,
+    market: str,
+    position: str,
+) -> np.ndarray:
+    """
+    Prefer position-specific out-of-fold residuals when the sample is large
+    enough; otherwise fall back to the full market residual distribution.
+    """
+    if oof.empty:
+        return np.array([], dtype=float)
+
+    market_rows = oof[oof["market"].eq(market)]
+    position_rows = market_rows[
+        market_rows["position"].astype(str).eq(str(position))
+    ]
+
+    source = position_rows if len(position_rows) >= 250 else market_rows
+    return pd.to_numeric(
+        source["residual"],
+        errors="coerce",
+    ).dropna().to_numpy(dtype=float)
+
+
+def empirical_over_probability(
+    residuals: np.ndarray,
+    projection: float,
+    line: float,
+) -> float:
+    """
+    P(actual > line) using only genuinely out-of-fold historical residuals.
+
+    actual = projection + residual
+    so OVER requires residual > line - projection.
+    A small Jeffreys-style smoothing term avoids exact 0/1 estimates.
+    """
+    if len(residuals) == 0:
+        return np.nan
+
+    threshold = float(line) - float(projection)
+    successes = int(np.sum(residuals > threshold))
+    return (successes + 0.5) / (len(residuals) + 1.0)
+
+
 def build_prop_projections(
     history: pd.DataFrame,
     upcoming: pd.DataFrame,
@@ -1063,13 +1188,13 @@ def read_prop_lines(input_dir: Path) -> pd.DataFrame:
 def attach_market_lines(
     projections: pd.DataFrame,
     lines: pd.DataFrame,
+    oof: pd.DataFrame,
 ) -> pd.DataFrame:
     if projections.empty or lines.empty:
         return pd.DataFrame()
 
     # PropLine's NFL id is ESPN-namespaced while nflverse uses GSIS ids,
-    # so names are the reliable cross-source key unless a truly matching id
-    # is explicitly supplied. Normalize names before joining.
+    # so normalized player names are the cross-source key.
     p = projections.copy()
     q = lines.copy()
 
@@ -1107,29 +1232,129 @@ def attach_market_lines(
         np.nan,
     )
 
-    # Normal-error approximation only. This is not a sportsbook-calibrated
-    # win probability until historical prop line archives are available.
-    edges["approx_p_over"] = edges["edge_sigma"].apply(
+    # Empirical probability from walk-forward residuals. This avoids assuming
+    # normally distributed errors and adapts to QB/RB/WR/TE distributions.
+    p_over = []
+    interval_low = []
+    interval_high = []
+
+    for _, row in edges.iterrows():
+        pool = residual_pool(
+            oof,
+            str(row["market"]),
+            str(row.get("position", "")),
+        )
+
+        p_over.append(
+            empirical_over_probability(
+                pool,
+                float(row["projection"]),
+                float(row["line"]),
+            )
+        )
+
+        if len(pool):
+            q10, q90 = np.quantile(pool, [0.10, 0.90])
+            interval_low.append(max(0.0, float(row["projection"]) + q10))
+            interval_high.append(max(0.0, float(row["projection"]) + q90))
+        else:
+            interval_low.append(np.nan)
+            interval_high.append(np.nan)
+
+    edges["empirical_p_over"] = p_over
+    edges["empirical_p_under"] = 1 - edges["empirical_p_over"]
+    edges["projection_p10"] = interval_low
+    edges["projection_p90"] = interval_high
+
+    # Keep the old normal approximation as a diagnostic, not the primary
+    # probability.
+    edges["normal_p_over"] = edges["edge_sigma"].apply(
         lambda z: normal_cdf(z) if pd.notna(z) else np.nan
     )
-    edges["approx_p_under"] = 1 - edges["approx_p_over"]
+
     edges["lean"] = np.where(edges["edge"] >= 0, "OVER", "UNDER")
-    edges["approx_lean_probability"] = np.where(
+    edges["model_lean_probability"] = np.where(
         edges["lean"].eq("OVER"),
-        edges["approx_p_over"],
-        edges["approx_p_under"],
-    )
-    edges["actionability"] = np.where(
-        edges.get("availability_ok", True),
-        "RESEARCH",
-        "AVAILABILITY_RISK",
+        edges["empirical_p_over"],
+        edges["empirical_p_under"],
     )
 
+    # Price-aware market probabilities.
+    for side in ["over", "under"]:
+        price_col = f"price_{side}"
+        if price_col in edges.columns:
+            edges[f"raw_implied_{side}"] = edges[price_col].apply(
+                odds_implied_probability
+            )
+        else:
+            edges[f"raw_implied_{side}"] = np.nan
+
+    implied_sum = (
+        edges["raw_implied_over"] + edges["raw_implied_under"]
+    )
+    edges["novig_p_over"] = np.where(
+        implied_sum > 0,
+        edges["raw_implied_over"] / implied_sum,
+        np.nan,
+    )
+    edges["novig_p_under"] = np.where(
+        implied_sum > 0,
+        edges["raw_implied_under"] / implied_sum,
+        np.nan,
+    )
+
+    edges["market_lean_probability"] = np.where(
+        edges["lean"].eq("OVER"),
+        edges["novig_p_over"],
+        edges["novig_p_under"],
+    )
+    edges["probability_edge"] = (
+        edges["model_lean_probability"]
+        - edges["market_lean_probability"]
+    )
+
+    # Expected net units using the actual quoted price.
+    lean_price = np.where(
+        edges["lean"].eq("OVER"),
+        edges.get("price_over", np.nan),
+        edges.get("price_under", np.nan),
+    )
+    edges["lean_price"] = lean_price
+    edges["win_profit_per_unit"] = pd.Series(
+        lean_price,
+        index=edges.index,
+    ).apply(odds_profit_per_unit)
+    edges["model_ev_per_unit"] = (
+        edges["model_lean_probability"]
+        * edges["win_profit_per_unit"]
+        - (1 - edges["model_lean_probability"])
+    )
+
+    edges["actionability"] = np.select(
+        [
+            ~edges.get(
+                "availability_ok",
+                pd.Series(True, index=edges.index),
+            ).astype(bool),
+            edges["model_lean_probability"] < 0.55,
+            edges["probability_edge"].notna()
+            & (edges["probability_edge"] < 0.03),
+        ],
+        [
+            "AVAILABILITY_RISK",
+            "WEAK_MODEL_EDGE",
+            "PRICE_TOO_EXPENSIVE",
+        ],
+        default="RESEARCH",
+    )
+
+    # One row per sportsbook quote is preserved for line shopping.
     return edges.sort_values(
-        ["approx_lean_probability", "edge_sigma"],
+        ["model_ev_per_unit", "probability_edge", "model_lean_probability"],
         ascending=False,
         na_position="last",
     )
+
 
 
 def main() -> None:
@@ -1211,7 +1436,7 @@ def main() -> None:
         )
 
     report_payload = {
-        "generated_at_utc": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+        "generated_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "season": season,
         "target_week": target_week,
         "training_start_season": args.start_season,
@@ -1222,7 +1447,8 @@ def main() -> None:
             "Every historical rolling player feature is shifted before the target game.",
             "Current projections blend ML and recent-player baselines using walk-forward out-of-sample MAE.",
             "Current-week injury reports are flags only and are not historical training features.",
-            "Prop-line probabilities are normal-error approximations, not calibrated sportsbook win probabilities.",
+            "Prop probabilities use empirical walk-forward residuals, with position-specific pools when sample size allows.",
+            "Price-aware EV uses the quoted odds and no-vig implied probability, but is not called validated ROI until forward line history is graded.",
             "True betting ROI requires an archive of historical prop lines and prices.",
         ],
     }
@@ -1234,10 +1460,28 @@ def main() -> None:
         json.dump(report_payload, f, indent=2, allow_nan=False)
 
     lines = read_prop_lines(input_dir)
-    edges = attach_market_lines(props, lines)
+    edges = attach_market_lines(props, lines, oof)
 
     edge_path = output_dir / "latest_player_prop_edges.csv"
     edges.to_csv(edge_path, index=False)
+
+    # Preserve exactly what the model believed each week so future results can
+    # be graded without hindsight or overwritten projections.
+    prediction_archive = output_dir / "player_predictions"
+    edge_archive = output_dir / "player_edges"
+    prediction_archive.mkdir(parents=True, exist_ok=True)
+    edge_archive.mkdir(parents=True, exist_ok=True)
+
+    props.to_csv(
+        prediction_archive
+        / f"{season}_week_{target_week:02d}_player_props.csv",
+        index=False,
+    )
+    edges.to_csv(
+        edge_archive
+        / f"{season}_week_{target_week:02d}_player_prop_edges.csv",
+        index=False,
+    )
 
     print("\nPLAYER PROP PIPELINE COMPLETE")
     print("=" * 72)
@@ -1259,8 +1503,11 @@ def main() -> None:
     if not edges.empty:
         show = [
             "player_name", "team", "opponent", "market",
-            "projection", "line", "edge", "edge_sigma",
-            "lean", "approx_lean_probability",
+            "projection", "line", "edge",
+            "lean", "model_lean_probability",
+            "novig_p_over", "novig_p_under",
+            "probability_edge", "model_ev_per_unit",
+            "actionability",
         ]
         print("\nTop current prop discrepancies:")
         print(edges[show].head(20).to_string(index=False))

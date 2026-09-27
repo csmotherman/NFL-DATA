@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-09-27T17:08:05Z",
+  "generated_at_utc": "2026-09-27T17:16:16+00:00",
   "season": 2026,
   "target_week": 3,
   "training_start_season": 2018,
@@ -228,7 +228,8 @@
     "Every historical rolling player feature is shifted before the target game.",
     "Current projections blend ML and recent-player baselines using walk-forward out-of-sample MAE.",
     "Current-week injury reports are flags only and are not historical training features.",
-    "Prop-line probabilities are normal-error approximations, not calibrated sportsbook win probabilities.",
+    "Prop probabilities use empirical walk-forward residuals, with position-specific pools when sample size allows.",
+    "Price-aware EV uses the quoted odds and no-vig implied probability, but is not called validated ROI until forward line history is graded.",
     "True betting ROI requires an archive of historical prop lines and prices."
   ]
 }

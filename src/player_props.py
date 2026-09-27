@@ -1067,12 +1067,30 @@ def attach_market_lines(
     if projections.empty or lines.empty:
         return pd.DataFrame()
 
-    if "player_id" in lines.columns:
-        join_cols = ["player_id", "market"]
-    else:
-        join_cols = ["player_name", "market"]
+    # PropLine's NFL id is ESPN-namespaced while nflverse uses GSIS ids,
+    # so names are the reliable cross-source key unless a truly matching id
+    # is explicitly supplied. Normalize names before joining.
+    p = projections.copy()
+    q = lines.copy()
 
-    edges = projections.merge(lines, on=join_cols, how="inner")
+    p["_join_name"] = (
+        p["player_name"].astype(str).str.lower().str.replace(
+            r"[^a-z0-9]+", "", regex=True
+        )
+    )
+    q["_join_name"] = (
+        q["player_name"].astype(str).str.lower().str.replace(
+            r"[^a-z0-9]+", "", regex=True
+        )
+    )
+
+    edges = p.merge(
+        q,
+        on=["_join_name", "market"],
+        how="inner",
+        suffixes=("", "_market"),
+    )
+    edges = edges.drop(columns=["_join_name"], errors="ignore")
 
     if edges.empty:
         return edges

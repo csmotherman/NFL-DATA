@@ -56,7 +56,7 @@ jobs:
         run: python -m pip install -r requirements.txt
 
       - name: Compile check
-        run: python -m py_compile src/nfl_edge.py src/player_props.py src/fetch_prop_lines.py
+        run: python -m py_compile src/nfl_edge.py src/player_props.py src/fetch_prop_lines.py src/grade_prop_history.py
 
       - name: Run weekly model
         shell: bash
@@ -92,6 +92,12 @@ jobs:
             ARGS+=(--week "${{ inputs.week }}")
           fi
           python src/player_props.py "${ARGS[@]}"
+
+      - name: Grade settled forward prop history
+        run: |
+          python src/grade_prop_history.py \
+            --edge-dir outputs/player_edges \
+            --output-dir outputs
 
       - name: Upload model outputs
         uses: actions/upload-artifact@v4

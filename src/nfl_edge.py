@@ -97,7 +97,7 @@ def configure_cache(cache_dir: Path) -> None:
     cache_dir.mkdir(parents=True, exist_ok=True)
     update_config(
         cache_mode="filesystem",
-        cache_dir=str(cache_dir),
+        cache_dir=cache_dir,
         cache_duration=1800,
         verbose=True,
         timeout=60,

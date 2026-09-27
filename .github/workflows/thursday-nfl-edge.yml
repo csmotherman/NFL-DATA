@@ -6,6 +6,7 @@ on:
     paths:
       - "src/**"
       - "requirements.txt"
+      - "inputs/**"
       - ".github/workflows/thursday-nfl-edge.yml"
   schedule:
     - cron: "0 12 * * 4"
@@ -55,7 +56,7 @@ jobs:
         run: python -m pip install -r requirements.txt
 
       - name: Compile check
-        run: python -m py_compile src/nfl_edge.py
+        run: python -m py_compile src/nfl_edge.py src/player_props.py
 
       - name: Run weekly model
         shell: bash
@@ -68,6 +69,18 @@ jobs:
             ARGS+=(--week "${{ inputs.week }}")
           fi
           python src/nfl_edge.py "${ARGS[@]}"
+
+      - name: Run player prop models
+        shell: bash
+        run: |
+          ARGS=(--auto --output-dir outputs --input-dir inputs)
+          if [[ -n "${{ inputs.season }}" ]]; then
+            ARGS+=(--season "${{ inputs.season }}")
+          fi
+          if [[ -n "${{ inputs.week }}" ]]; then
+            ARGS+=(--week "${{ inputs.week }}")
+          fi
+          python src/player_props.py "${ARGS[@]}"
 
       - name: Upload model outputs
         uses: actions/upload-artifact@v4

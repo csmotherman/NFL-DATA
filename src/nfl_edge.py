@@ -46,6 +46,7 @@ ROLLING_GAMES = 8
 MIN_ROLLING_GAMES = 3
 START_SEASON = 2018
 RANDOM_STATE = 42
+MARKET_WALK_FORWARD_SEASONS = [2022, 2023, 2024, 2025]
 
 RAW_FEATURES = [
     "off_pass_epa_db",
@@ -469,6 +470,190 @@ def totals_backtest(
     return ats_backtest(actual, prediction, market, thresholds)
 
 
+def _aggregate_walk_forward_thresholds(
+    folds: list[dict],
+    thresholds=(1.5, 2.5, 3.5, 4.5),
+) -> tuple[dict, float | None]:
+    """
+    Aggregate sequential out-of-sample betting results and only validate a
+    threshold when it survives multiple seasons with enough volume.
+    """
+    summary = {}
+
+    for threshold in thresholds:
+        key = str(threshold)
+        season_rows = []
+        wins = losses = 0
+
+        for fold in folds:
+            row = fold.get("threshold_backtest", {}).get(key)
+            if not row or row.get("bets", 0) == 0:
+                continue
+            season_rows.append({
+                "season": fold["season"],
+                **row,
+            })
+            wins += int(row["wins"])
+            losses += int(row["losses"])
+
+        bets = wins + losses
+        win_rate = wins / bets if bets else np.nan
+        roi = ((wins * (100 / 110)) - losses) / bets if bets else np.nan
+        profitable_seasons = sum(
+            1 for r in season_rows
+            if r.get("roi_at_minus_110") is not None
+            and r["roi_at_minus_110"] > 0
+        )
+        seasons_with_bets = len(season_rows)
+
+        # Deliberately strict. A threshold is not called validated because of
+        # one hot season or a tiny sample.
+        stable = (
+            seasons_with_bets >= 3
+            and bets >= 100
+            and profitable_seasons >= math.ceil(seasons_with_bets * 0.60)
+            and pd.notna(roi)
+            and roi > 0
+            and win_rate > (110 / 210)  # break-even at -110
+        )
+
+        summary[key] = {
+            "bets": bets,
+            "wins": wins,
+            "losses": losses,
+            "win_rate": None if pd.isna(win_rate) else round(float(win_rate), 4),
+            "roi_at_minus_110": None if pd.isna(roi) else round(float(roi), 4),
+            "seasons_with_bets": seasons_with_bets,
+            "profitable_seasons": profitable_seasons,
+            "stable": bool(stable),
+            "by_season": season_rows,
+        }
+
+    stable_thresholds = [
+        float(k) for k, v in summary.items() if v["stable"]
+    ]
+
+    if not stable_thresholds:
+        return summary, None
+
+    # Among stable thresholds, favor the strongest ROI adjusted for sample size.
+    best = max(
+        stable_thresholds,
+        key=lambda t: (
+            (summary[str(t)]["roi_at_minus_110"] or -999)
+            * math.sqrt(max(summary[str(t)]["bets"], 1))
+        ),
+    )
+    return summary, float(best)
+
+
+def walk_forward_market_validation(
+    dataset: pd.DataFrame,
+    feature_cols: list[str],
+    current_season: int,
+) -> dict:
+    """
+    Rolling-origin validation: train only on seasons before each test season.
+
+    This is much harder to fool than one holdout and is the gatekeeper for
+    promoting a current market discrepancy from WATCH to VALIDATED.
+    """
+    market_features = feature_cols + ["spread_line", "total_line"]
+    available = {
+        int(s) for s in dataset["season"].dropna().unique()
+        if int(s) < current_season
+    }
+
+    output = {}
+
+    for kind in ["spread", "total"]:
+        line_col = "spread_line" if kind == "spread" else "total_line"
+        target_col = "target_margin" if kind == "spread" else "target_total"
+        residual_col = f"{kind}_residual"
+
+        folds = []
+        all_rows = []
+
+        for test_season in MARKET_WALK_FORWARD_SEASONS:
+            if test_season not in available:
+                continue
+
+            train = dataset[
+                (dataset["season"] < test_season)
+                & dataset[line_col].notna()
+            ].copy()
+            test = dataset[
+                (dataset["season"] == test_season)
+                & dataset[line_col].notna()
+            ].copy()
+
+            if len(train) < 500 or len(test) < 100:
+                continue
+
+            train[residual_col] = train[target_col] - train[line_col]
+            model = BlendRegressor().fit(
+                train[market_features],
+                train[residual_col],
+            )
+
+            residual_pred = model.predict(test[market_features])
+            adjusted = test[line_col].to_numpy(dtype=float) + residual_pred
+
+            fold_backtest = ats_backtest(
+                test[target_col],
+                adjusted,
+                test[line_col],
+            )
+
+            folds.append({
+                "season": int(test_season),
+                "games": int(len(test)),
+                "market_mae": round(float(mean_absolute_error(
+                    test[target_col], test[line_col]
+                )), 3),
+                "adjusted_mae": round(float(mean_absolute_error(
+                    test[target_col], adjusted
+                )), 3),
+                "threshold_backtest": fold_backtest,
+            })
+
+            fold_rows = pd.DataFrame({
+                "season": test_season,
+                "actual": test[target_col].to_numpy(dtype=float),
+                "market": test[line_col].to_numpy(dtype=float),
+                "adjusted": adjusted,
+            })
+            all_rows.append(fold_rows)
+
+        if not all_rows:
+            output[kind] = {
+                "status": "not_enough_walk_forward_data",
+                "validated_threshold": None,
+            }
+            continue
+
+        oof = pd.concat(all_rows, ignore_index=True)
+        threshold_summary, validated_threshold = (
+            _aggregate_walk_forward_thresholds(folds)
+        )
+
+        output[kind] = {
+            "status": "ok",
+            "seasons": folds,
+            "oof_games": int(len(oof)),
+            "market_mae": round(float(mean_absolute_error(
+                oof["actual"], oof["market"]
+            )), 3),
+            "adjusted_mae": round(float(mean_absolute_error(
+                oof["actual"], oof["adjusted"]
+            )), 3),
+            "thresholds": threshold_summary,
+            "validated_threshold": validated_threshold,
+        }
+
+    return output
+
+
 def evaluate_holdout(
     dataset: pd.DataFrame,
     feature_cols: list[str],
@@ -749,6 +934,8 @@ def build_candidates(
     predictions: pd.DataFrame,
     spread_edge_threshold: float,
     total_edge_threshold: float,
+    validated_spread_threshold: float | None = None,
+    validated_total_threshold: float | None = None,
 ) -> pd.DataFrame:
     rows = []
 
@@ -758,17 +945,43 @@ def build_candidates(
         spread_edge = r.get("spread_edge", np.nan)
         total_edge = r.get("total_edge", np.nan)
 
+        promotion_status = "WATCH"
+
         if pd.notna(spread_edge) and abs(spread_edge) >= spread_edge_threshold:
             side = r["home_team"] if spread_edge > 0 else r["away_team"]
-            reasons.append(
-                f"SPREAD: {side} model-market edge {abs(spread_edge):.1f} pts"
-            )
+            if (
+                validated_spread_threshold is not None
+                and abs(spread_edge) >= validated_spread_threshold
+            ):
+                promotion_status = "VALIDATED"
+                reasons.append(
+                    f"VALIDATED SPREAD: {side} model-market edge "
+                    f"{abs(spread_edge):.1f} pts"
+                )
+            else:
+                reasons.append(
+                    f"WATCH SPREAD: {side} model-market edge "
+                    f"{abs(spread_edge):.1f} pts; walk-forward validation "
+                    f"has not established a durable threshold"
+                )
 
         if pd.notna(total_edge) and abs(total_edge) >= total_edge_threshold:
             side = "OVER" if total_edge > 0 else "UNDER"
-            reasons.append(
-                f"TOTAL: {side} model-market edge {abs(total_edge):.1f} pts"
-            )
+            if (
+                validated_total_threshold is not None
+                and abs(total_edge) >= validated_total_threshold
+            ):
+                promotion_status = "VALIDATED"
+                reasons.append(
+                    f"VALIDATED TOTAL: {side} model-market edge "
+                    f"{abs(total_edge):.1f} pts"
+                )
+            else:
+                reasons.append(
+                    f"WATCH TOTAL: {side} model-market edge "
+                    f"{abs(total_edge):.1f} pts; walk-forward validation "
+                    f"has not established a durable threshold"
+                )
 
         matchup_values = {
             f"{r['home_team']} PASS": r.get("home_pass_matchup", np.nan),
@@ -804,6 +1017,7 @@ def build_candidates(
                 "total_edge": total_edge,
                 "best_matchup": best_matchup,
                 "best_matchup_score": best_matchup_score,
+                "promotion_status": promotion_status,
                 "reason": " | ".join(reasons),
             })
 
@@ -812,7 +1026,7 @@ def build_candidates(
             "season", "week", "game_id", "away_team", "home_team",
             "model_home_margin", "market_home_margin", "spread_edge",
             "model_total", "market_total", "total_edge",
-            "best_matchup", "best_matchup_score", "reason",
+            "best_matchup", "best_matchup_score", "promotion_status", "reason",
         ])
 
     out = pd.DataFrame(rows)
@@ -870,8 +1084,21 @@ def main() -> None:
 
     dataset, feature_cols = build_historical_dataset(schedules, pregame)
 
-    # Evaluate on the newest fully historical season before fitting all data.
+    # Evaluate one recent holdout plus a harder rolling-origin market test.
     report = evaluate_holdout(dataset, feature_cols, current_season=season)
+    walk_forward = walk_forward_market_validation(
+        dataset,
+        feature_cols,
+        current_season=season,
+    )
+    report["walk_forward_market_validation"] = walk_forward
+
+    validated_spread_threshold = (
+        walk_forward.get("spread", {}).get("validated_threshold")
+    )
+    validated_total_threshold = (
+        walk_forward.get("total", {}).get("validated_threshold")
+    )
 
     # Final independent football models use all completed games.
     margin_model = BlendRegressor().fit(
@@ -975,6 +1202,8 @@ def main() -> None:
         upcoming,
         spread_edge_threshold=args.spread_edge,
         total_edge_threshold=args.total_edge,
+        validated_spread_threshold=validated_spread_threshold,
+        validated_total_threshold=validated_total_threshold,
     )
 
     predictions.to_csv(output_dir / "latest_predictions.csv", index=False)
@@ -990,14 +1219,17 @@ def main() -> None:
         "rolling_games": ROLLING_GAMES,
         "min_rolling_games": MIN_ROLLING_GAMES,
         "historical_training_games_final_fit": int(len(dataset)),
-        "spread_candidate_threshold": args.spread_edge,
-        "total_candidate_threshold": args.total_edge,
+        "spread_watch_threshold": args.spread_edge,
+        "total_watch_threshold": args.total_edge,
+        "validated_spread_threshold": validated_spread_threshold,
+        "validated_total_threshold": validated_total_threshold,
         "candidate_count": int(len(candidates)),
         "notes": [
             "Independent football projections do not use sportsbook lines.",
             "Betting edges come from separate historical market-residual models.",
             "Historical features are shifted before each game.",
-            "Candidate edges must still be judged against holdout performance and sample size.",
+            "Current market edges are promoted to VALIDATED only when a threshold survives multi-season rolling-origin tests.",
+            "If no threshold survives, current discrepancies remain WATCH signals.",
             "Matchup WATCH rows are not market-value claims.",
         ],
     })

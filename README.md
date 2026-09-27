@@ -24,7 +24,7 @@ The goal is **research and price discovery**, not to force a bet on every game.
 - `outputs/latest_matchups.csv` — pass/run matchup and projected-volume board.
 - `outputs/latest_candidates.csv` — only games passing configurable edge filters.
 - `outputs/model_report.json` — holdout MAE, directional accuracy and threshold backtests.
-- `outputs/team_state.csv` — current rolling team profiles.
+- `outputs/team_state.csv` — current rolling team profiles.\n- `outputs/latest_player_props.csv` — upcoming QB/RB/WR/TE projections.\n- `outputs/latest_player_prop_edges.csv` — projection-vs-line discrepancies when prop lines are supplied.\n- `outputs/player_prop_model_report.json` — walk-forward MAE, baseline comparison, blend weights and uncertainty by prop market.\n- `outputs/player_prop_walkforward_oof.csv` — out-of-fold historical player prop predictions.
 
 ## Model design
 
@@ -93,3 +93,37 @@ The report therefore includes threshold backtests (for example 1.5, 2.5, 3.5 and
 If the market beats the model out of sample, that is a failed hypothesis—not a signal to bet harder. The point of this repository is to find repeatable edges and reject the ones that do not survive validation.
 
 Free nflverse data is the foundation of this project. nflreadpy is the Python loader.
+
+
+## Player prop models
+
+The prop engine currently projects:
+
+- pass attempts
+- completions
+- passing yards
+- rush attempts
+- rushing yards
+- receptions
+- receiving yards
+
+Player models use recent 3-game and 6-game form, season-to-date form, usage shares, efficiency, team pace and pass rate, opponent defensive efficiency, rest, spread, total and implied team points.
+
+Each prop market is validated with walk-forward seasons rather than a random train/test split. The pipeline compares ML against a simple recent-player baseline and automatically chooses the blend weight that produced the lowest out-of-sample MAE.
+
+To compare against sportsbook lines, populate:
+
+```
+inputs/player_prop_lines.csv
+```
+
+with rows like:
+
+```csv
+player_id,player_name,market,line,book,price_over,price_under
+00-0034857,Josh Allen,passing_yards,267.5,example,-110,-110
+```
+
+Supported market names are `pass_attempts`, `completions`, `passing_yards`, `rush_attempts`, `rushing_yards`, `receptions`, and `receiving_yards`.
+
+The resulting edge probability is currently a normal-error approximation based on historical residual dispersion. It is deliberately labeled as approximate until historical sportsbook prop-line archives are added and calibrated directly.

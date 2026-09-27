@@ -474,6 +474,17 @@ def evaluate_holdout(
     feature_cols: list[str],
     current_season: int,
 ) -> dict:
+    """
+    Evaluate two layers on the newest completed historical season:
+
+    1) independent football model (never sees market lines);
+    2) market-residual model, trained to predict where actual outcomes
+       deviate from the spread/total.
+
+    The residual layer is the betting layer. It answers a more honest
+    question than "what score do we predict?": where has the market
+    historically been wrong conditional on these football features?
+    """
     available = sorted(
         int(x) for x in dataset["season"].dropna().unique()
         if int(x) < current_season
@@ -493,6 +504,7 @@ def evaluate_holdout(
             "test_games": len(test),
         }
 
+    # Layer 1: independent football projections.
     margin_model = BlendRegressor().fit(
         train[feature_cols],
         train["target_margin"],
@@ -502,11 +514,11 @@ def evaluate_holdout(
         train["target_total"],
     )
 
-    pred_margin = margin_model.predict(test[feature_cols])
-    pred_total = total_model.predict(test[feature_cols])
+    independent_margin = margin_model.predict(test[feature_cols])
+    independent_total = total_model.predict(test[feature_cols])
 
     winner_accuracy = np.mean(
-        np.sign(pred_margin) == np.sign(test["target_margin"].to_numpy())
+        np.sign(independent_margin) == np.sign(test["target_margin"].to_numpy())
     )
 
     report = {
@@ -514,26 +526,106 @@ def evaluate_holdout(
         "holdout_season": holdout,
         "train_games": int(len(train)),
         "test_games": int(len(test)),
-        "margin_mae": round(float(mean_absolute_error(test["target_margin"], pred_margin)), 3),
-        "total_mae": round(float(mean_absolute_error(test["target_total"], pred_total)), 3),
-        "winner_accuracy": round(float(winner_accuracy), 4),
+        "independent_model": {
+            "margin_mae": round(float(mean_absolute_error(test["target_margin"], independent_margin)), 3),
+            "total_mae": round(float(mean_absolute_error(test["target_total"], independent_total)), 3),
+            "winner_accuracy": round(float(winner_accuracy), 4),
+        },
     }
 
-    if "spread_line" in test.columns:
-        report["spread_threshold_backtest"] = ats_backtest(
-            test["target_margin"],
-            pred_margin,
-            test["spread_line"],
-        )
+    # Layer 2: market residual models.
+    market_features = feature_cols + ["spread_line", "total_line"]
 
-    if "total_line" in test.columns:
-        report["total_threshold_backtest"] = totals_backtest(
-            test["target_total"],
-            pred_total,
-            test["total_line"],
+    spread_train = train[train["spread_line"].notna()].copy()
+    spread_test = test[test["spread_line"].notna()].copy()
+
+    if len(spread_train) >= 300 and len(spread_test) >= 50:
+        spread_train["spread_residual"] = (
+            spread_train["target_margin"] - spread_train["spread_line"]
         )
+        spread_resid_model = BlendRegressor().fit(
+            spread_train[market_features],
+            spread_train["spread_residual"],
+        )
+        spread_resid_pred = spread_resid_model.predict(spread_test[market_features])
+        adjusted_margin = spread_test["spread_line"].to_numpy() + spread_resid_pred
+
+        report["spread_market_model"] = {
+            "games": int(len(spread_test)),
+            "market_margin_mae": round(float(mean_absolute_error(
+                spread_test["target_margin"],
+                spread_test["spread_line"],
+            )), 3),
+            "adjusted_margin_mae": round(float(mean_absolute_error(
+                spread_test["target_margin"],
+                adjusted_margin,
+            )), 3),
+            "threshold_backtest": ats_backtest(
+                spread_test["target_margin"],
+                adjusted_margin,
+                spread_test["spread_line"],
+            ),
+        }
+
+    total_train = train[train["total_line"].notna()].copy()
+    total_test = test[test["total_line"].notna()].copy()
+
+    if len(total_train) >= 300 and len(total_test) >= 50:
+        total_train["total_residual"] = (
+            total_train["target_total"] - total_train["total_line"]
+        )
+        total_resid_model = BlendRegressor().fit(
+            total_train[market_features],
+            total_train["total_residual"],
+        )
+        total_resid_pred = total_resid_model.predict(total_test[market_features])
+        adjusted_total = total_test["total_line"].to_numpy() + total_resid_pred
+
+        report["total_market_model"] = {
+            "games": int(len(total_test)),
+            "market_total_mae": round(float(mean_absolute_error(
+                total_test["target_total"],
+                total_test["total_line"],
+            )), 3),
+            "adjusted_total_mae": round(float(mean_absolute_error(
+                total_test["target_total"],
+                adjusted_total,
+            )), 3),
+            "threshold_backtest": totals_backtest(
+                total_test["target_total"],
+                adjusted_total,
+                total_test["total_line"],
+            ),
+        }
 
     return report
+
+
+def fit_market_residual_models(
+    dataset: pd.DataFrame,
+    feature_cols: list[str],
+):
+    market_features = feature_cols + ["spread_line", "total_line"]
+
+    spread_rows = dataset[dataset["spread_line"].notna()].copy()
+    spread_rows["spread_residual"] = (
+        spread_rows["target_margin"] - spread_rows["spread_line"]
+    )
+    spread_model = BlendRegressor().fit(
+        spread_rows[market_features],
+        spread_rows["spread_residual"],
+    )
+
+    total_rows = dataset[dataset["total_line"].notna()].copy()
+    total_rows["total_residual"] = (
+        total_rows["target_total"] - total_rows["total_line"]
+    )
+    total_model = BlendRegressor().fit(
+        total_rows[market_features],
+        total_rows["total_residual"],
+    )
+
+    return spread_model, total_model, market_features
 
 
 def infer_target_week(
@@ -781,7 +873,7 @@ def main() -> None:
     # Evaluate on the newest fully historical season before fitting all data.
     report = evaluate_holdout(dataset, feature_cols, current_season=season)
 
-    # Final models can use all completed historical/current games.
+    # Final independent football models use all completed games.
     margin_model = BlendRegressor().fit(
         dataset[feature_cols],
         dataset["target_margin"],
@@ -789,6 +881,11 @@ def main() -> None:
     total_model = BlendRegressor().fit(
         dataset[feature_cols],
         dataset["target_total"],
+    )
+
+    # Betting layer: learn historical residuals versus available market prices.
+    spread_resid_model, total_resid_model, market_feature_cols = (
+        fit_market_residual_models(dataset, feature_cols)
     )
 
     target_week = infer_target_week(schedules, season, args.week)
@@ -802,11 +899,39 @@ def main() -> None:
     )
     upcoming = matchup_metrics(upcoming)
 
-    upcoming["model_home_margin"] = margin_model.predict(upcoming[feature_cols])
-    upcoming["model_total"] = total_model.predict(upcoming[feature_cols])
+    # Independent football projection: useful as a sanity check.
+    upcoming["independent_home_margin"] = margin_model.predict(upcoming[feature_cols])
+    upcoming["independent_total"] = total_model.predict(upcoming[feature_cols])
 
-    upcoming["spread_edge"] = upcoming["model_home_margin"] - upcoming["spread_line"]
-    upcoming["total_edge"] = upcoming["model_total"] - upcoming["total_line"]
+    # Market-residual betting layer. If a line is unavailable, keep betting edge NaN.
+    for c in market_feature_cols:
+        if c not in upcoming.columns:
+            upcoming[c] = np.nan
+
+    spread_residual_pred = spread_resid_model.predict(upcoming[market_feature_cols])
+    total_residual_pred = total_resid_model.predict(upcoming[market_feature_cols])
+
+    upcoming["spread_edge"] = np.where(
+        upcoming["spread_line"].notna(),
+        spread_residual_pred,
+        np.nan,
+    )
+    upcoming["total_edge"] = np.where(
+        upcoming["total_line"].notna(),
+        total_residual_pred,
+        np.nan,
+    )
+
+    upcoming["model_home_margin"] = np.where(
+        upcoming["spread_line"].notna(),
+        upcoming["spread_line"] + upcoming["spread_edge"],
+        upcoming["independent_home_margin"],
+    )
+    upcoming["model_total"] = np.where(
+        upcoming["total_line"].notna(),
+        upcoming["total_line"] + upcoming["total_edge"],
+        upcoming["independent_total"],
+    )
 
     upcoming["model_favorite"] = np.where(
         upcoming["model_home_margin"] > 0,
@@ -822,8 +947,8 @@ def main() -> None:
     prediction_cols = [
         "season", "week", "gameday", "game_id",
         "away_team", "home_team",
-        "model_home_margin", "spread_line", "spread_edge",
-        "model_total", "total_line", "total_edge",
+        "independent_home_margin", "model_home_margin", "spread_line", "spread_edge",
+        "independent_total", "model_total", "total_line", "total_edge",
         "model_favorite", "model_total_lean",
         "home_games_in_window", "away_games_in_window",
     ]
@@ -869,7 +994,8 @@ def main() -> None:
         "total_candidate_threshold": args.total_edge,
         "candidate_count": int(len(candidates)),
         "notes": [
-            "Sportsbook spread/total are not model training features.",
+            "Independent football projections do not use sportsbook lines.",
+            "Betting edges come from separate historical market-residual models.",
             "Historical features are shifted before each game.",
             "Candidate edges must still be judged against holdout performance and sample size.",
             "Matchup WATCH rows are not market-value claims.",
@@ -886,9 +1012,27 @@ def main() -> None:
 
     if report.get("status") == "ok":
         print(f"Holdout season: {report['holdout_season']}")
-        print(f"Margin MAE: {report['margin_mae']}")
-        print(f"Total MAE: {report['total_mae']}")
-        print(f"Winner accuracy: {report['winner_accuracy']:.1%}")
+        independent = report.get("independent_model", {})
+        print(f"Independent margin MAE: {independent.get('margin_mae')}")
+        print(f"Independent total MAE: {independent.get('total_mae')}")
+        if independent.get("winner_accuracy") is not None:
+            print(f"Winner accuracy: {independent['winner_accuracy']:.1%}")
+
+        spread_report = report.get("spread_market_model", {})
+        if spread_report:
+            print(
+                "Spread market MAE -> adjusted MAE: "
+                f"{spread_report.get('market_margin_mae')} -> "
+                f"{spread_report.get('adjusted_margin_mae')}"
+            )
+
+        total_report = report.get("total_market_model", {})
+        if total_report:
+            print(
+                "Total market MAE -> adjusted MAE: "
+                f"{total_report.get('market_total_mae')} -> "
+                f"{total_report.get('adjusted_total_mae')}"
+            )
 
     if not candidates.empty:
         print("\nTop candidates:")

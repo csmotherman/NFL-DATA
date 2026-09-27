@@ -127,3 +127,18 @@ player_id,player_name,market,line,book,price_over,price_under
 Supported market names are `pass_attempts`, `completions`, `passing_yards`, `rush_attempts`, `rushing_yards`, `receptions`, and `receiving_yards`.
 
 The resulting edge probability is currently a normal-error approximation based on historical residual dispersion. It is deliberately labeled as approximate until historical sportsbook prop-line archives are added and calibrated directly.
+
+
+## Automatic live player prop lines
+
+The Thursday workflow can pull live NFL player prop markets automatically from PropLine.
+
+PropLine currently offers a free API key with 1,000 requests/day. Add the key to the GitHub repository as an Actions secret named:
+
+```
+PROPLINE_API_KEY
+```
+
+When that secret exists, the workflow automatically refreshes `inputs/player_prop_lines.csv` before running the player models. If the secret is absent, the pipeline falls back to whatever manual CSV is already present.
+
+The live feed is used only as the market comparison layer. It does not replace nflverse as the football/statistical source.

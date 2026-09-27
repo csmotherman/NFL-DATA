@@ -78,7 +78,7 @@ jobs:
           if [[ -z "$PROPLINE_API_KEY" ]]; then
             echo "PROPLINE_API_KEY is not configured; using any existing/manual prop-line input."
           else
-            python src/fetch_prop_lines.py --output inputs/player_prop_lines.csv
+            python src/fetch_prop_lines.py --output inputs/player_prop_lines.csv --archive-dir outputs/prop_line_snapshots
           fi
 
       - name: Run player prop models
@@ -111,4 +111,8 @@ jobs:
             exit 0
           fi
           git commit -m "data: refresh weekly NFL betting edges"
-          git push
+          # Main may have changed while the model was training. Rebase the
+          # generated-output commit instead of failing with a non-fast-forward.
+          git fetch origin main
+          git rebase origin/main
+          git push origin HEAD:main

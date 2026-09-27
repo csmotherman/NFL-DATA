@@ -1,6 +1,12 @@
 name: Thursday NFL Edge
 
 on:
+  push:
+    branches: ["main"]
+    paths:
+      - "src/**"
+      - "requirements.txt"
+      - ".github/workflows/thursday-nfl-edge.yml"
   schedule:
     - cron: "0 12 * * 4"
       timezone: "America/Detroit"
@@ -47,6 +53,9 @@ jobs:
 
       - name: Install dependencies
         run: python -m pip install -r requirements.txt
+
+      - name: Compile check
+        run: python -m py_compile src/nfl_edge.py
 
       - name: Run weekly model
         shell: bash

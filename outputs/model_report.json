@@ -78,21 +78,688 @@
       }
     }
   },
-  "generated_at_utc": "2026-09-27T16:38:16Z",
+  "walk_forward_market_validation": {
+    "spread": {
+      "status": "ok",
+      "seasons": [
+        {
+          "season": 2022,
+          "games": 271,
+          "market_mae": 8.742,
+          "adjusted_mae": 9.025,
+          "threshold_backtest": {
+            "1.5": {
+              "bets": 161,
+              "wins": 80,
+              "losses": 81,
+              "win_rate": 0.4969,
+              "roi_at_minus_110": -0.0514
+            },
+            "2.5": {
+              "bets": 103,
+              "wins": 56,
+              "losses": 47,
+              "win_rate": 0.5437,
+              "roi_at_minus_110": 0.038
+            },
+            "3.5": {
+              "bets": 61,
+              "wins": 34,
+              "losses": 27,
+              "win_rate": 0.5574,
+              "roi_at_minus_110": 0.0641
+            },
+            "4.5": {
+              "bets": 33,
+              "wins": 18,
+              "losses": 15,
+              "win_rate": 0.5455,
+              "roi_at_minus_110": 0.0413
+            }
+          }
+        },
+        {
+          "season": 2023,
+          "games": 272,
+          "market_mae": 9.901,
+          "adjusted_mae": 10.098,
+          "threshold_backtest": {
+            "1.5": {
+              "bets": 143,
+              "wins": 65,
+              "losses": 78,
+              "win_rate": 0.4545,
+              "roi_at_minus_110": -0.1322
+            },
+            "2.5": {
+              "bets": 73,
+              "wins": 36,
+              "losses": 37,
+              "win_rate": 0.4932,
+              "roi_at_minus_110": -0.0585
+            },
+            "3.5": {
+              "bets": 33,
+              "wins": 14,
+              "losses": 19,
+              "win_rate": 0.4242,
+              "roi_at_minus_110": -0.1901
+            },
+            "4.5": {
+              "bets": 14,
+              "wins": 4,
+              "losses": 10,
+              "win_rate": 0.2857,
+              "roi_at_minus_110": -0.4545
+            }
+          }
+        },
+        {
+          "season": 2024,
+          "games": 272,
+          "market_mae": 9.61,
+          "adjusted_mae": 9.638,
+          "threshold_backtest": {
+            "1.5": {
+              "bets": 137,
+              "wins": 73,
+              "losses": 64,
+              "win_rate": 0.5328,
+              "roi_at_minus_110": 0.0173
+            },
+            "2.5": {
+              "bets": 75,
+              "wins": 39,
+              "losses": 36,
+              "win_rate": 0.52,
+              "roi_at_minus_110": -0.0073
+            },
+            "3.5": {
+              "bets": 36,
+              "wins": 19,
+              "losses": 17,
+              "win_rate": 0.5278,
+              "roi_at_minus_110": 0.0076
+            },
+            "4.5": {
+              "bets": 14,
+              "wins": 9,
+              "losses": 5,
+              "win_rate": 0.6429,
+              "roi_at_minus_110": 0.2273
+            }
+          }
+        },
+        {
+          "season": 2025,
+          "games": 272,
+          "market_mae": 9.722,
+          "adjusted_mae": 9.998,
+          "threshold_backtest": {
+            "1.5": {
+              "bets": 140,
+              "wins": 72,
+              "losses": 68,
+              "win_rate": 0.5143,
+              "roi_at_minus_110": -0.0182
+            },
+            "2.5": {
+              "bets": 80,
+              "wins": 39,
+              "losses": 41,
+              "win_rate": 0.4875,
+              "roi_at_minus_110": -0.0693
+            },
+            "3.5": {
+              "bets": 39,
+              "wins": 19,
+              "losses": 20,
+              "win_rate": 0.4872,
+              "roi_at_minus_110": -0.0699
+            },
+            "4.5": {
+              "bets": 16,
+              "wins": 7,
+              "losses": 9,
+              "win_rate": 0.4375,
+              "roi_at_minus_110": -0.1648
+            }
+          }
+        }
+      ],
+      "oof_games": 1087,
+      "market_mae": 9.494,
+      "adjusted_mae": 9.691,
+      "thresholds": {
+        "1.5": {
+          "bets": 581,
+          "wins": 290,
+          "losses": 291,
+          "win_rate": 0.4991,
+          "roi_at_minus_110": -0.0471,
+          "seasons_with_bets": 4,
+          "profitable_seasons": 1,
+          "stable": false,
+          "by_season": [
+            {
+              "season": 2022,
+              "bets": 161,
+              "wins": 80,
+              "losses": 81,
+              "win_rate": 0.4969,
+              "roi_at_minus_110": -0.0514
+            },
+            {
+              "season": 2023,
+              "bets": 143,
+              "wins": 65,
+              "losses": 78,
+              "win_rate": 0.4545,
+              "roi_at_minus_110": -0.1322
+            },
+            {
+              "season": 2024,
+              "bets": 137,
+              "wins": 73,
+              "losses": 64,
+              "win_rate": 0.5328,
+              "roi_at_minus_110": 0.0173
+            },
+            {
+              "season": 2025,
+              "bets": 140,
+              "wins": 72,
+              "losses": 68,
+              "win_rate": 0.5143,
+              "roi_at_minus_110": -0.0182
+            }
+          ]
+        },
+        "2.5": {
+          "bets": 331,
+          "wins": 170,
+          "losses": 161,
+          "win_rate": 0.5136,
+          "roi_at_minus_110": -0.0195,
+          "seasons_with_bets": 4,
+          "profitable_seasons": 1,
+          "stable": false,
+          "by_season": [
+            {
+              "season": 2022,
+              "bets": 103,
+              "wins": 56,
+              "losses": 47,
+              "win_rate": 0.5437,
+              "roi_at_minus_110": 0.038
+            },
+            {
+              "season": 2023,
+              "bets": 73,
+              "wins": 36,
+              "losses": 37,
+              "win_rate": 0.4932,
+              "roi_at_minus_110": -0.0585
+            },
+            {
+              "season": 2024,
+              "bets": 75,
+              "wins": 39,
+              "losses": 36,
+              "win_rate": 0.52,
+              "roi_at_minus_110": -0.0073
+            },
+            {
+              "season": 2025,
+              "bets": 80,
+              "wins": 39,
+              "losses": 41,
+              "win_rate": 0.4875,
+              "roi_at_minus_110": -0.0693
+            }
+          ]
+        },
+        "3.5": {
+          "bets": 169,
+          "wins": 86,
+          "losses": 83,
+          "win_rate": 0.5089,
+          "roi_at_minus_110": -0.0285,
+          "seasons_with_bets": 4,
+          "profitable_seasons": 2,
+          "stable": false,
+          "by_season": [
+            {
+              "season": 2022,
+              "bets": 61,
+              "wins": 34,
+              "losses": 27,
+              "win_rate": 0.5574,
+              "roi_at_minus_110": 0.0641
+            },
+            {
+              "season": 2023,
+              "bets": 33,
+              "wins": 14,
+              "losses": 19,
+              "win_rate": 0.4242,
+              "roi_at_minus_110": -0.1901
+            },
+            {
+              "season": 2024,
+              "bets": 36,
+              "wins": 19,
+              "losses": 17,
+              "win_rate": 0.5278,
+              "roi_at_minus_110": 0.0076
+            },
+            {
+              "season": 2025,
+              "bets": 39,
+              "wins": 19,
+              "losses": 20,
+              "win_rate": 0.4872,
+              "roi_at_minus_110": -0.0699
+            }
+          ]
+        },
+        "4.5": {
+          "bets": 77,
+          "wins": 38,
+          "losses": 39,
+          "win_rate": 0.4935,
+          "roi_at_minus_110": -0.0579,
+          "seasons_with_bets": 4,
+          "profitable_seasons": 2,
+          "stable": false,
+          "by_season": [
+            {
+              "season": 2022,
+              "bets": 33,
+              "wins": 18,
+              "losses": 15,
+              "win_rate": 0.5455,
+              "roi_at_minus_110": 0.0413
+            },
+            {
+              "season": 2023,
+              "bets": 14,
+              "wins": 4,
+              "losses": 10,
+              "win_rate": 0.2857,
+              "roi_at_minus_110": -0.4545
+            },
+            {
+              "season": 2024,
+              "bets": 14,
+              "wins": 9,
+              "losses": 5,
+              "win_rate": 0.6429,
+              "roi_at_minus_110": 0.2273
+            },
+            {
+              "season": 2025,
+              "bets": 16,
+              "wins": 7,
+              "losses": 9,
+              "win_rate": 0.4375,
+              "roi_at_minus_110": -0.1648
+            }
+          ]
+        }
+      },
+      "validated_threshold": null
+    },
+    "total": {
+      "status": "ok",
+      "seasons": [
+        {
+          "season": 2022,
+          "games": 271,
+          "market_mae": 10.395,
+          "adjusted_mae": 10.933,
+          "threshold_backtest": {
+            "1.5": {
+              "bets": 177,
+              "wins": 76,
+              "losses": 101,
+              "win_rate": 0.4294,
+              "roi_at_minus_110": -0.1803
+            },
+            "2.5": {
+              "bets": 136,
+              "wins": 55,
+              "losses": 81,
+              "win_rate": 0.4044,
+              "roi_at_minus_110": -0.2279
+            },
+            "3.5": {
+              "bets": 74,
+              "wins": 32,
+              "losses": 42,
+              "win_rate": 0.4324,
+              "roi_at_minus_110": -0.1744
+            },
+            "4.5": {
+              "bets": 38,
+              "wins": 17,
+              "losses": 21,
+              "win_rate": 0.4474,
+              "roi_at_minus_110": -0.1459
+            }
+          }
+        },
+        {
+          "season": 2023,
+          "games": 272,
+          "market_mae": 10.239,
+          "adjusted_mae": 10.355,
+          "threshold_backtest": {
+            "1.5": {
+              "bets": 159,
+              "wins": 86,
+              "losses": 73,
+              "win_rate": 0.5409,
+              "roi_at_minus_110": 0.0326
+            },
+            "2.5": {
+              "bets": 98,
+              "wins": 53,
+              "losses": 45,
+              "win_rate": 0.5408,
+              "roi_at_minus_110": 0.0325
+            },
+            "3.5": {
+              "bets": 56,
+              "wins": 32,
+              "losses": 24,
+              "win_rate": 0.5714,
+              "roi_at_minus_110": 0.0909
+            },
+            "4.5": {
+              "bets": 29,
+              "wins": 13,
+              "losses": 16,
+              "win_rate": 0.4483,
+              "roi_at_minus_110": -0.1442
+            }
+          }
+        },
+        {
+          "season": 2024,
+          "games": 272,
+          "market_mae": 9.73,
+          "adjusted_mae": 9.899,
+          "threshold_backtest": {
+            "1.5": {
+              "bets": 142,
+              "wins": 66,
+              "losses": 76,
+              "win_rate": 0.4648,
+              "roi_at_minus_110": -0.1127
+            },
+            "2.5": {
+              "bets": 77,
+              "wins": 36,
+              "losses": 41,
+              "win_rate": 0.4675,
+              "roi_at_minus_110": -0.1074
+            },
+            "3.5": {
+              "bets": 43,
+              "wins": 20,
+              "losses": 23,
+              "win_rate": 0.4651,
+              "roi_at_minus_110": -0.1121
+            },
+            "4.5": {
+              "bets": 20,
+              "wins": 9,
+              "losses": 11,
+              "win_rate": 0.45,
+              "roi_at_minus_110": -0.1409
+            }
+          }
+        },
+        {
+          "season": 2025,
+          "games": 272,
+          "market_mae": 10.393,
+          "adjusted_mae": 10.628,
+          "threshold_backtest": {
+            "1.5": {
+              "bets": 149,
+              "wins": 72,
+              "losses": 77,
+              "win_rate": 0.4832,
+              "roi_at_minus_110": -0.0775
+            },
+            "2.5": {
+              "bets": 87,
+              "wins": 46,
+              "losses": 41,
+              "win_rate": 0.5287,
+              "roi_at_minus_110": 0.0094
+            },
+            "3.5": {
+              "bets": 37,
+              "wins": 17,
+              "losses": 20,
+              "win_rate": 0.4595,
+              "roi_at_minus_110": -0.1229
+            },
+            "4.5": {
+              "bets": 18,
+              "wins": 8,
+              "losses": 10,
+              "win_rate": 0.4444,
+              "roi_at_minus_110": -0.1515
+            }
+          }
+        }
+      ],
+      "oof_games": 1087,
+      "market_mae": 10.189,
+      "adjusted_mae": 10.453,
+      "thresholds": {
+        "1.5": {
+          "bets": 627,
+          "wins": 300,
+          "losses": 327,
+          "win_rate": 0.4785,
+          "roi_at_minus_110": -0.0866,
+          "seasons_with_bets": 4,
+          "profitable_seasons": 1,
+          "stable": false,
+          "by_season": [
+            {
+              "season": 2022,
+              "bets": 177,
+              "wins": 76,
+              "losses": 101,
+              "win_rate": 0.4294,
+              "roi_at_minus_110": -0.1803
+            },
+            {
+              "season": 2023,
+              "bets": 159,
+              "wins": 86,
+              "losses": 73,
+              "win_rate": 0.5409,
+              "roi_at_minus_110": 0.0326
+            },
+            {
+              "season": 2024,
+              "bets": 142,
+              "wins": 66,
+              "losses": 76,
+              "win_rate": 0.4648,
+              "roi_at_minus_110": -0.1127
+            },
+            {
+              "season": 2025,
+              "bets": 149,
+              "wins": 72,
+              "losses": 77,
+              "win_rate": 0.4832,
+              "roi_at_minus_110": -0.0775
+            }
+          ]
+        },
+        "2.5": {
+          "bets": 398,
+          "wins": 190,
+          "losses": 208,
+          "win_rate": 0.4774,
+          "roi_at_minus_110": -0.0886,
+          "seasons_with_bets": 4,
+          "profitable_seasons": 2,
+          "stable": false,
+          "by_season": [
+            {
+              "season": 2022,
+              "bets": 136,
+              "wins": 55,
+              "losses": 81,
+              "win_rate": 0.4044,
+              "roi_at_minus_110": -0.2279
+            },
+            {
+              "season": 2023,
+              "bets": 98,
+              "wins": 53,
+              "losses": 45,
+              "win_rate": 0.5408,
+              "roi_at_minus_110": 0.0325
+            },
+            {
+              "season": 2024,
+              "bets": 77,
+              "wins": 36,
+              "losses": 41,
+              "win_rate": 0.4675,
+              "roi_at_minus_110": -0.1074
+            },
+            {
+              "season": 2025,
+              "bets": 87,
+              "wins": 46,
+              "losses": 41,
+              "win_rate": 0.5287,
+              "roi_at_minus_110": 0.0094
+            }
+          ]
+        },
+        "3.5": {
+          "bets": 210,
+          "wins": 101,
+          "losses": 109,
+          "win_rate": 0.481,
+          "roi_at_minus_110": -0.0818,
+          "seasons_with_bets": 4,
+          "profitable_seasons": 1,
+          "stable": false,
+          "by_season": [
+            {
+              "season": 2022,
+              "bets": 74,
+              "wins": 32,
+              "losses": 42,
+              "win_rate": 0.4324,
+              "roi_at_minus_110": -0.1744
+            },
+            {
+              "season": 2023,
+              "bets": 56,
+              "wins": 32,
+              "losses": 24,
+              "win_rate": 0.5714,
+              "roi_at_minus_110": 0.0909
+            },
+            {
+              "season": 2024,
+              "bets": 43,
+              "wins": 20,
+              "losses": 23,
+              "win_rate": 0.4651,
+              "roi_at_minus_110": -0.1121
+            },
+            {
+              "season": 2025,
+              "bets": 37,
+              "wins": 17,
+              "losses": 20,
+              "win_rate": 0.4595,
+              "roi_at_minus_110": -0.1229
+            }
+          ]
+        },
+        "4.5": {
+          "bets": 105,
+          "wins": 47,
+          "losses": 58,
+          "win_rate": 0.4476,
+          "roi_at_minus_110": -0.1455,
+          "seasons_with_bets": 4,
+          "profitable_seasons": 0,
+          "stable": false,
+          "by_season": [
+            {
+              "season": 2022,
+              "bets": 38,
+              "wins": 17,
+              "losses": 21,
+              "win_rate": 0.4474,
+              "roi_at_minus_110": -0.1459
+            },
+            {
+              "season": 2023,
+              "bets": 29,
+              "wins": 13,
+              "losses": 16,
+              "win_rate": 0.4483,
+              "roi_at_minus_110": -0.1442
+            },
+            {
+              "season": 2024,
+              "bets": 20,
+              "wins": 9,
+              "losses": 11,
+              "win_rate": 0.45,
+              "roi_at_minus_110": -0.1409
+            },
+            {
+              "season": 2025,
+              "bets": 18,
+              "wins": 8,
+              "losses": 10,
+              "win_rate": 0.4444,
+              "roi_at_minus_110": -0.1515
+            }
+          ]
+        }
+      },
+      "validated_threshold": null
+    }
+  },
+  "generated_at_utc": "2026-09-27T17:02:56Z",
   "training_start_season": 2018,
   "current_season": 2026,
   "target_week": 3,
   "rolling_games": 8,
   "min_rolling_games": 3,
   "historical_training_games_final_fit": 2080,
-  "spread_candidate_threshold": 3.0,
-  "total_candidate_threshold": 3.0,
+  "spread_watch_threshold": 3.0,
+  "total_watch_threshold": 3.0,
+  "validated_spread_threshold": null,
+  "validated_total_threshold": null,
   "candidate_count": 11,
   "notes": [
     "Independent football projections do not use sportsbook lines.",
     "Betting edges come from separate historical market-residual models.",
     "Historical features are shifted before each game.",
-    "Candidate edges must still be judged against holdout performance and sample size.",
+    "Current market edges are promoted to VALIDATED only when a threshold survives multi-season rolling-origin tests.",
+    "If no threshold survives, current discrepancies remain WATCH signals.",
     "Matchup WATCH rows are not market-value claims."
   ]
 }

@@ -1,0 +1,234 @@
+{
+  "generated_at_utc": "2026-09-27T17:08:05Z",
+  "season": 2026,
+  "target_week": 3,
+  "training_start_season": 2018,
+  "short_window_games": 3,
+  "long_window_games": 6,
+  "markets": {
+    "pass_attempts": {
+      "status": "ok",
+      "market": "pass_attempts",
+      "oof_rows": 1760,
+      "seasons": {
+        "2023": {
+          "games": 592,
+          "model_mae": 8.263,
+          "baseline_mae": 8.424,
+          "blended_mae": 8.263
+        },
+        "2024": {
+          "games": 584,
+          "model_mae": 7.827,
+          "baseline_mae": 8.599,
+          "blended_mae": 7.827
+        },
+        "2025": {
+          "games": 584,
+          "model_mae": 7.752,
+          "baseline_mae": 8.593,
+          "blended_mae": 7.752
+        }
+      },
+      "model_mae": 7.949,
+      "baseline_mae": 8.538,
+      "optimal_model_weight": 1.0,
+      "blended_mae": 7.949,
+      "residual_sd": 10.232,
+      "model_beats_baseline": true
+    },
+    "completions": {
+      "status": "ok",
+      "market": "completions",
+      "oof_rows": 1760,
+      "seasons": {
+        "2023": {
+          "games": 592,
+          "model_mae": 5.694,
+          "baseline_mae": 5.898,
+          "blended_mae": 5.694
+        },
+        "2024": {
+          "games": 584,
+          "model_mae": 5.392,
+          "baseline_mae": 5.822,
+          "blended_mae": 5.392
+        },
+        "2025": {
+          "games": 584,
+          "model_mae": 5.273,
+          "baseline_mae": 5.948,
+          "blended_mae": 5.273
+        }
+      },
+      "model_mae": 5.454,
+      "baseline_mae": 5.889,
+      "optimal_model_weight": 1.0,
+      "blended_mae": 5.454,
+      "residual_sd": 6.956,
+      "model_beats_baseline": true
+    },
+    "passing_yards": {
+      "status": "ok",
+      "market": "passing_yards",
+      "oof_rows": 1760,
+      "seasons": {
+        "2023": {
+          "games": 592,
+          "model_mae": 68.164,
+          "baseline_mae": 71.105,
+          "blended_mae": 68.164
+        },
+        "2024": {
+          "games": 584,
+          "model_mae": 64.223,
+          "baseline_mae": 70.629,
+          "blended_mae": 64.223
+        },
+        "2025": {
+          "games": 584,
+          "model_mae": 64.969,
+          "baseline_mae": 72.125,
+          "blended_mae": 64.969
+        }
+      },
+      "model_mae": 65.796,
+      "baseline_mae": 71.286,
+      "optimal_model_weight": 1.0,
+      "blended_mae": 65.796,
+      "residual_sd": 82.801,
+      "model_beats_baseline": true
+    },
+    "rush_attempts": {
+      "status": "ok",
+      "market": "rush_attempts",
+      "oof_rows": 5088,
+      "seasons": {
+        "2023": {
+          "games": 1726,
+          "model_mae": 3.346,
+          "baseline_mae": 3.451,
+          "blended_mae": 3.342
+        },
+        "2024": {
+          "games": 1704,
+          "model_mae": 3.31,
+          "baseline_mae": 3.397,
+          "blended_mae": 3.297
+        },
+        "2025": {
+          "games": 1658,
+          "model_mae": 3.223,
+          "baseline_mae": 3.353,
+          "blended_mae": 3.22
+        }
+      },
+      "model_mae": 3.294,
+      "baseline_mae": 3.401,
+      "optimal_model_weight": 0.8,
+      "blended_mae": 3.287,
+      "residual_sd": 4.388,
+      "model_beats_baseline": true
+    },
+    "rushing_yards": {
+      "status": "ok",
+      "market": "rushing_yards",
+      "oof_rows": 5088,
+      "seasons": {
+        "2023": {
+          "games": 1726,
+          "model_mae": 18.841,
+          "baseline_mae": 19.552,
+          "blended_mae": 18.804
+        },
+        "2024": {
+          "games": 1704,
+          "model_mae": 20.276,
+          "baseline_mae": 20.828,
+          "blended_mae": 20.226
+        },
+        "2025": {
+          "games": 1658,
+          "model_mae": 19.874,
+          "baseline_mae": 20.922,
+          "blended_mae": 19.876
+        }
+      },
+      "model_mae": 19.658,
+      "baseline_mae": 20.426,
+      "optimal_model_weight": 0.85,
+      "blended_mae": 19.63,
+      "residual_sd": 26.803,
+      "model_beats_baseline": true
+    },
+    "receptions": {
+      "status": "ok",
+      "market": "receptions",
+      "oof_rows": 11042,
+      "seasons": {
+        "2023": {
+          "games": 3739,
+          "model_mae": 1.467,
+          "baseline_mae": 1.537,
+          "blended_mae": 1.467
+        },
+        "2024": {
+          "games": 3661,
+          "model_mae": 1.511,
+          "baseline_mae": 1.565,
+          "blended_mae": 1.511
+        },
+        "2025": {
+          "games": 3642,
+          "model_mae": 1.452,
+          "baseline_mae": 1.521,
+          "blended_mae": 1.452
+        }
+      },
+      "model_mae": 1.477,
+      "baseline_mae": 1.541,
+      "optimal_model_weight": 1.0,
+      "blended_mae": 1.477,
+      "residual_sd": 1.921,
+      "model_beats_baseline": true
+    },
+    "receiving_yards": {
+      "status": "ok",
+      "market": "receiving_yards",
+      "oof_rows": 11042,
+      "seasons": {
+        "2023": {
+          "games": 3739,
+          "model_mae": 19.861,
+          "baseline_mae": 20.993,
+          "blended_mae": 19.861
+        },
+        "2024": {
+          "games": 3661,
+          "model_mae": 19.872,
+          "baseline_mae": 20.915,
+          "blended_mae": 19.872
+        },
+        "2025": {
+          "games": 3642,
+          "model_mae": 19.547,
+          "baseline_mae": 20.625,
+          "blended_mae": 19.547
+        }
+      },
+      "model_mae": 19.761,
+      "baseline_mae": 20.846,
+      "optimal_model_weight": 1.0,
+      "blended_mae": 19.761,
+      "residual_sd": 26.765,
+      "model_beats_baseline": true
+    }
+  },
+  "notes": [
+    "Every historical rolling player feature is shifted before the target game.",
+    "Current projections blend ML and recent-player baselines using walk-forward out-of-sample MAE.",
+    "Current-week injury reports are flags only and are not historical training features.",
+    "Prop-line probabilities are normal-error approximations, not calibrated sportsbook win probabilities.",
+    "True betting ROI requires an archive of historical prop lines and prices."
+  ]
+}

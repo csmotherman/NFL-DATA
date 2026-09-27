@@ -48,12 +48,12 @@ Core inputs include:
 - week
 - neutral-site indicator
 
-Two independent regressors predict:
+The pipeline has two separate modeling layers:
 
-- home-team scoring margin
-- game total
+1. **Independent football model** — predicts home margin and game total without sportsbook lines.
+2. **Market-residual model** — uses historical football features plus the posted spread/total to learn where outcomes have systematically differed from market prices.
 
-The model does **not** use the sportsbook spread or total as a training feature. Market numbers are kept separate so the output can measure model-vs-market disagreement honestly.
+This separation matters. The independent model is a football sanity check; the residual model is the betting-research layer. The report always compares both against the market on held-out data instead of assuming model disagreement is profitable.
 
 ## Run locally
 
@@ -89,5 +89,7 @@ It also supports **workflow_dispatch**, so you can run it manually from the Acti
 A model edge is not automatically a profitable bet. The useful question is whether the model's disagreement with the market has held up **out of sample**.
 
 The report therefore includes threshold backtests (for example 1.5, 2.5, 3.5 and 4.5 points) on the holdout season. Treat small samples skeptically.
+
+If the market beats the model out of sample, that is a failed hypothesis—not a signal to bet harder. The point of this repository is to find repeatable edges and reject the ones that do not survive validation.
 
 Free nflverse data is the foundation of this project. nflreadpy is the Python loader.

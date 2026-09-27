@@ -200,6 +200,122 @@ def safe_div(num, den) -> pd.Series:
     return out
 
 
+def load_current_injuries(
+    season: int,
+    week: int,
+) -> pd.DataFrame:
+    """
+    Current-week injury information is used as a projection warning/eligibility
+    flag only. It is intentionally not used as a historical training feature
+    because publication timing can create subtle leakage.
+    """
+    try:
+        injuries = nfl.load_injuries(seasons=season).to_pandas()
+    except Exception as exc:
+        print(f"[warning] Could not load injuries: {exc}")
+        return pd.DataFrame()
+
+    if injuries.empty:
+        return injuries
+
+    if "week" in injuries.columns:
+        injuries = injuries[
+            pd.to_numeric(injuries["week"], errors="coerce").eq(week)
+        ].copy()
+
+    if injuries.empty:
+        return injuries
+
+    if "gsis_id" not in injuries.columns:
+        return pd.DataFrame()
+
+    injuries["player_id"] = injuries["gsis_id"].astype(str)
+    if "date_modified" in injuries.columns:
+        injuries["date_modified"] = pd.to_datetime(
+            injuries["date_modified"],
+            errors="coerce",
+        )
+        injuries = injuries.sort_values("date_modified")
+
+    subset = ["player_id"]
+    if "team" in injuries.columns:
+        subset.append("team")
+
+    injuries = injuries.drop_duplicates(subset=subset, keep="last")
+
+    keep = [
+        "player_id",
+        "team",
+        "report_primary_injury",
+        "report_secondary_injury",
+        "report_status",
+        "practice_primary_injury",
+        "practice_secondary_injury",
+        "practice_status",
+        "date_modified",
+    ]
+    keep = [x for x in keep if x in injuries.columns]
+    return injuries[keep].copy()
+
+
+def attach_injury_flags(
+    upcoming: pd.DataFrame,
+    injuries: pd.DataFrame,
+) -> pd.DataFrame:
+    x = upcoming.copy()
+    x["player_id"] = x["player_id"].astype(str)
+
+    if injuries.empty:
+        x["report_status"] = np.nan
+        x["practice_status"] = np.nan
+        x["report_primary_injury"] = np.nan
+        x["availability_flag"] = "NOT_LISTED"
+        x["availability_ok"] = True
+        return x
+
+    inj = injuries.copy()
+    inj["player_id"] = inj["player_id"].astype(str)
+
+    join_cols = ["player_id"]
+    if "team" in inj.columns and "team" in x.columns:
+        join_cols.append("team")
+
+    x = x.merge(inj, on=join_cols, how="left")
+
+    report = x.get(
+        "report_status",
+        pd.Series(np.nan, index=x.index),
+    ).fillna("").astype(str).str.upper()
+    practice = x.get(
+        "practice_status",
+        pd.Series(np.nan, index=x.index),
+    ).fillna("").astype(str).str.upper()
+
+    x["availability_flag"] = np.select(
+        [
+            report.str.contains("OUT", regex=False),
+            report.str.contains("DOUBTFUL", regex=False),
+            report.str.contains("QUESTIONABLE", regex=False),
+            practice.str.contains("DID NOT", regex=False)
+            | practice.eq("DNP"),
+            practice.str.contains("LIMITED", regex=False),
+        ],
+        [
+            "OUT",
+            "DOUBTFUL",
+            "QUESTIONABLE",
+            "DNP",
+            "LIMITED",
+        ],
+        default="NOT_LISTED",
+    )
+
+    x["availability_ok"] = ~x["availability_flag"].isin(
+        ["OUT", "DOUBTFUL"]
+    )
+    return x
+
+
 def load_player_data(seasons: list[int]) -> pd.DataFrame:
     print(f"Loading player stats: {min(seasons)}-{max(seasons)}")
     p = nfl.load_player_stats(
@@ -851,6 +967,26 @@ def build_prop_projections(
         out["model_weight"] = weight
         out["historical_residual_sd"] = residual_sd
         out["games_current_season"] = current["games_current_season"].to_numpy()
+        out["availability_flag"] = current.get(
+            "availability_flag",
+            pd.Series("NOT_LISTED", index=current.index),
+        ).to_numpy()
+        out["availability_ok"] = current.get(
+            "availability_ok",
+            pd.Series(True, index=current.index),
+        ).to_numpy()
+        out["report_status"] = current.get(
+            "report_status",
+            pd.Series(np.nan, index=current.index),
+        ).to_numpy()
+        out["practice_status"] = current.get(
+            "practice_status",
+            pd.Series(np.nan, index=current.index),
+        ).to_numpy()
+        out["primary_injury"] = current.get(
+            "report_primary_injury",
+            pd.Series(np.nan, index=current.index),
+        ).to_numpy()
         out["team_spread"] = current["team_spread"].to_numpy()
         out["game_total"] = current["game_total"].to_numpy()
         out["team_implied_points"] = current["team_implied_points"].to_numpy()
@@ -965,6 +1101,11 @@ def attach_market_lines(
         edges["approx_p_over"],
         edges["approx_p_under"],
     )
+    edges["actionability"] = np.where(
+        edges.get("availability_ok", True),
+        "RESEARCH",
+        "AVAILABILITY_RISK",
+    )
 
     return edges.sort_values(
         ["approx_lean_probability", "edge_sigma"],
@@ -1034,6 +1175,9 @@ def main() -> None:
     # one target week only.
     upcoming["season"] = season
 
+    injuries = load_current_injuries(season, target_week)
+    upcoming = attach_injury_flags(upcoming, injuries)
+
     props, reports, oof = build_prop_projections(
         player_history,
         upcoming,
@@ -1059,6 +1203,7 @@ def main() -> None:
         "notes": [
             "Every historical rolling player feature is shifted before the target game.",
             "Current projections blend ML and recent-player baselines using walk-forward out-of-sample MAE.",
+            "Current-week injury reports are flags only and are not historical training features.",
             "Prop-line probabilities are normal-error approximations, not calibrated sportsbook win probabilities.",
             "True betting ROI requires an archive of historical prop lines and prices.",
         ],

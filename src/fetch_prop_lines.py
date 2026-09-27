@@ -15,6 +15,7 @@ import argparse
 import os
 import re
 from pathlib import Path
+from datetime import datetime, timezone
 
 import pandas as pd
 from propline import PropLine
@@ -44,6 +45,7 @@ def clean_player_name(value: str) -> str:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", default="inputs/player_prop_lines.csv")
+    parser.add_argument("--archive-dir", default="outputs/prop_line_snapshots")
     args = parser.parse_args()
 
     api_key = os.getenv("PROPLINE_API_KEY", "").strip()
@@ -148,6 +150,16 @@ def main() -> None:
 
     df.to_csv(output, index=False)
     print(f"Saved {len(df):,} live prop quote rows to {output}")
+
+    # Preserve the exact market the model saw at Thursday execution time.
+    # These snapshots become our clean forward prop-line backtest archive.
+    if not df.empty and args.archive_dir:
+        archive_dir = Path(args.archive_dir)
+        archive_dir.mkdir(parents=True, exist_ok=True)
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        archive_path = archive_dir / f"nfl_props_{stamp}.csv"
+        df.to_csv(archive_path, index=False)
+        print(f"Archived market snapshot to {archive_path}")
 
 
 if __name__ == "__main__":

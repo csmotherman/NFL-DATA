@@ -1078,6 +1078,7 @@ def build_prop_projections(
             ]
         ].copy() if False else pd.DataFrame(index=current.index)
 
+        out["season"] = current["season"].to_numpy()
         out["week"] = current["week"].to_numpy()
         out["game_id"] = current["game_id"].to_numpy()
         out["player_id"] = current["player_id"].to_numpy()

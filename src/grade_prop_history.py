@@ -112,6 +112,17 @@ def select_executable_quotes(edges: pd.DataFrame) -> pd.DataFrame:
     This approximates real line shopping: among simultaneously archived quotes,
     keep the highest model-EV quote that was not already marked unavailable.
     """
+    if edges.empty:
+        return pd.DataFrame()
+
+    required = {
+        "model_ev_per_unit",
+        "model_lean_probability",
+        "line",
+    }
+    if not required.issubset(edges.columns):
+        return pd.DataFrame()
+
     x = edges.copy()
 
     if "availability_ok" in x.columns:

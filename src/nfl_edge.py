@@ -947,106 +947,101 @@ def build_candidates(
     validated_spread_threshold: float | None = None,
     validated_total_threshold: float | None = None,
 ) -> pd.DataFrame:
+    """
+    Production candidate board.
+
+    Betting qualification comes from the nested market-strategy engine.
+    Point-space disagreement is retained only as descriptive context and does
+    not override a NO BET decision.
+    """
     rows = []
 
     for _, r in predictions.iterrows():
         reasons = []
+        statuses = []
 
-        spread_edge = r.get("spread_edge", np.nan)
-        total_edge = r.get("total_edge", np.nan)
-
-        promotion_status = "WATCH"
-
-        if pd.notna(spread_edge) and abs(spread_edge) >= spread_edge_threshold:
-            side = r["home_team"] if spread_edge > 0 else r["away_team"]
-            if (
-                validated_spread_threshold is not None
-                and abs(spread_edge) >= validated_spread_threshold
-            ):
-                promotion_status = "VALIDATED"
-                reasons.append(
-                    f"VALIDATED SPREAD: {side} model-market edge "
-                    f"{abs(spread_edge):.1f} pts"
-                )
-            else:
-                reasons.append(
-                    f"WATCH SPREAD: {side} model-market edge "
-                    f"{abs(spread_edge):.1f} pts; walk-forward validation "
-                    f"has not established a durable threshold"
-                )
-
-        if pd.notna(total_edge) and abs(total_edge) >= total_edge_threshold:
-            side = "OVER" if total_edge > 0 else "UNDER"
-            if (
-                validated_total_threshold is not None
-                and abs(total_edge) >= validated_total_threshold
-            ):
-                promotion_status = "VALIDATED"
-                reasons.append(
-                    f"VALIDATED TOTAL: {side} model-market edge "
-                    f"{abs(total_edge):.1f} pts"
-                )
-            else:
-                reasons.append(
-                    f"WATCH TOTAL: {side} model-market edge "
-                    f"{abs(total_edge):.1f} pts; walk-forward validation "
-                    f"has not established a durable threshold"
-                )
-
-        matchup_values = {
-            f"{r['home_team']} PASS": r.get("home_pass_matchup", np.nan),
-            f"{r['away_team']} PASS": r.get("away_pass_matchup", np.nan),
-            f"{r['home_team']} RUN": r.get("home_run_matchup", np.nan),
-            f"{r['away_team']} RUN": r.get("away_run_matchup", np.nan),
-        }
-        matchup_values = {
-            k: v for k, v in matchup_values.items() if pd.notna(v)
-        }
-        best_matchup = max(matchup_values, key=matchup_values.get) if matchup_values else None
-        best_matchup_score = matchup_values.get(best_matchup, np.nan) if best_matchup else np.nan
-
-        # A strong football mismatch is worth watching even if the market line
-        # has not posted yet, but it is explicitly a WATCH rather than a bet.
-        if not reasons and pd.notna(best_matchup_score) and best_matchup_score >= 1.5:
+        spread_status = str(r.get("spread_status", "NO BET")).upper()
+        if spread_status in {"WATCH", "VALIDATED"}:
+            statuses.append(spread_status)
             reasons.append(
-                f"WATCH: {best_matchup} matchup score {best_matchup_score:.2f}"
+                f"{spread_status} SPREAD: {r.get('spread_pick', '')} | "
+                f"model p={float(r.get('spread_probability', np.nan)):.1%} | "
+                f"prob edge={float(r.get('spread_probability_edge', np.nan)):.1%} | "
+                f"EV={float(r.get('spread_expected_value', np.nan)):.1%}"
             )
 
-        if reasons:
-            rows.append({
-                "season": r["season"],
-                "week": r["week"],
-                "game_id": r["game_id"],
-                "away_team": r["away_team"],
-                "home_team": r["home_team"],
-                "model_home_margin": r["model_home_margin"],
-                "market_home_margin": r.get("spread_line", np.nan),
-                "spread_edge": spread_edge,
-                "model_total": r["model_total"],
-                "market_total": r.get("total_line", np.nan),
-                "total_edge": total_edge,
-                "best_matchup": best_matchup,
-                "best_matchup_score": best_matchup_score,
-                "promotion_status": promotion_status,
-                "reason": " | ".join(reasons),
-            })
+        total_status = str(r.get("total_status", "NO BET")).upper()
+        if total_status in {"WATCH", "VALIDATED"}:
+            statuses.append(total_status)
+            reasons.append(
+                f"{total_status} TOTAL: {r.get('total_pick', '')} | "
+                f"model p={float(r.get('total_probability', np.nan)):.1%} | "
+                f"prob edge={float(r.get('total_probability_edge', np.nan)):.1%} | "
+                f"EV={float(r.get('total_expected_value', np.nan)):.1%}"
+            )
+
+        if not reasons:
+            continue
+
+        promotion_status = (
+            "VALIDATED" if "VALIDATED" in statuses else "WATCH"
+        )
+
+        rows.append({
+            "season": r["season"],
+            "week": r["week"],
+            "game_id": r["game_id"],
+            "away_team": r["away_team"],
+            "home_team": r["home_team"],
+            "model_home_margin": r["model_home_margin"],
+            "market_home_margin": r.get("spread_line", np.nan),
+            "spread_edge": r.get("spread_edge", np.nan),
+            "spread_pick": r.get("spread_pick", ""),
+            "spread_probability": r.get("spread_probability", np.nan),
+            "spread_probability_edge": r.get(
+                "spread_probability_edge", np.nan
+            ),
+            "spread_expected_value": r.get(
+                "spread_expected_value", np.nan
+            ),
+            "spread_status": spread_status,
+            "model_total": r["model_total"],
+            "market_total": r.get("total_line", np.nan),
+            "total_edge": r.get("total_edge", np.nan),
+            "total_pick": r.get("total_pick", ""),
+            "total_probability": r.get("total_probability", np.nan),
+            "total_probability_edge": r.get(
+                "total_probability_edge", np.nan
+            ),
+            "total_expected_value": r.get(
+                "total_expected_value", np.nan
+            ),
+            "total_status": total_status,
+            "promotion_status": promotion_status,
+            "reason": " | ".join(reasons),
+        })
 
     if not rows:
         return pd.DataFrame(columns=[
             "season", "week", "game_id", "away_team", "home_team",
             "model_home_margin", "market_home_margin", "spread_edge",
-            "model_total", "market_total", "total_edge",
-            "best_matchup", "best_matchup_score", "promotion_status", "reason",
+            "spread_pick", "spread_probability", "spread_probability_edge",
+            "spread_expected_value", "spread_status",
+            "model_total", "market_total", "total_edge", "total_pick",
+            "total_probability", "total_probability_edge",
+            "total_expected_value", "total_status",
+            "promotion_status", "reason",
         ])
 
     out = pd.DataFrame(rows)
-    out["max_market_edge"] = out[["spread_edge", "total_edge"]].abs().max(axis=1)
+    out["max_probability_edge"] = out[
+        ["spread_probability_edge", "total_probability_edge"]
+    ].max(axis=1)
     return out.sort_values(
-        ["max_market_edge", "best_matchup_score"],
-        ascending=False,
+        ["promotion_status", "max_probability_edge"],
+        ascending=[True, False],
         na_position="last",
     )
-
 
 def serialize_report(report: dict, output_dir: Path) -> None:
     path = output_dir / "model_report.json"

@@ -864,8 +864,35 @@ def walk_forward_strategy_validation(
             full_oof, kind
         )
 
-        # Current-season shadow holdout: strategy is frozen using only prior
-        # seasons, then tested on completed games from the current season.
+        strategy_validated = (
+            total_bets >= 100
+            and roi is not None
+            and roi > 0
+            and seasons_with_bets >= 3
+            and profitable_seasons
+            >= math.ceil(seasons_with_bets * 0.60)
+        )
+        frozen_confirmation = frozen_confirmation_test(
+            full_oof,
+            kind,
+            discovery_end_season=2021,
+            confirmation_start_season=2022,
+            current_season=current_season,
+        )
+        production_strategy = (
+            frozen_confirmation.get("frozen_strategy")
+            if frozen_confirmation.get("passed", False)
+            else {
+                "orientation": "normal",
+                "side_mode": "none",
+                "segment": "all",
+                "threshold": 1.0,
+                "reason": "Frozen confirmation did not pass.",
+            }
+        )
+
+        # Current-season shadow holdout grades the exact same frozen policy
+        # that production would use. No 2026 result is allowed to retune it.
         current_rows = market_rows(dataset, kind)
         current_rows = current_rows[
             current_rows["season"].eq(current_season)
@@ -880,7 +907,7 @@ def walk_forward_strategy_validation(
             "roi": None,
             "profit_units": 0.0,
         }
-        if len(current_rows) and final_strategy.get("side_mode") != "none":
+        if len(current_rows) and production_strategy.get("side_mode") != "none":
             historical_rows = market_rows(dataset, kind)
             historical_rows = historical_rows[
                 historical_rows["season"] < current_season
@@ -899,29 +926,13 @@ def walk_forward_strategy_validation(
                 shadow_eval,
                 shadow_probability,
                 kind,
-                orientation=final_strategy.get("orientation", "normal"),
+                orientation=production_strategy.get("orientation", "normal"),
             )
             current_shadow.update(
                 evaluate_strategy(
-                    shadow_eval, kind, final_strategy
+                    shadow_eval, kind, production_strategy
                 )
             )
-
-        strategy_validated = (
-            total_bets >= 100
-            and roi is not None
-            and roi > 0
-            and seasons_with_bets >= 3
-            and profitable_seasons
-            >= math.ceil(seasons_with_bets * 0.60)
-        )
-        frozen_confirmation = frozen_confirmation_test(
-            full_oof,
-            kind,
-            discovery_end_season=2021,
-            confirmation_start_season=2022,
-            current_season=current_season,
-        )
 
         output[kind] = {
             "status": "ok",
@@ -956,17 +967,7 @@ def walk_forward_strategy_validation(
                 strategy_validated
             ),
             "frozen_confirmation": frozen_confirmation,
-            "production_strategy": (
-                frozen_confirmation.get("frozen_strategy")
-                if frozen_confirmation.get("passed", False)
-                else {
-                    "orientation": "normal",
-                    "side_mode": "none",
-                    "segment": "all",
-                    "threshold": 1.0,
-                    "reason": "Frozen confirmation did not pass.",
-                }
-            ),
+            "production_strategy": production_strategy,
             "current_season_shadow": current_shadow,
             "final_strategy": final_strategy,
             "thresholds": fixed_threshold_diagnostics(

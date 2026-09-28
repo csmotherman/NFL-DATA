@@ -93,8 +93,46 @@ class MarketClassifier:
         return np.clip(0.75 * p_linear + 0.25 * p_tree, 0.01, 0.99)
 
 
+def implied_probability(values: pd.Series) -> pd.Series:
+    odds = numeric(values)
+    return pd.Series(
+        np.where(
+            odds < 0,
+            (-odds) / ((-odds) + 100.0),
+            np.where(
+                odds > 0,
+                100.0 / (odds + 100.0),
+                np.nan,
+            ),
+        ),
+        index=values.index,
+        dtype=float,
+    )
+
+
+def no_vig_share(
+    positive_odds: pd.Series,
+    negative_odds: pd.Series,
+) -> pd.Series:
+    positive = implied_probability(positive_odds)
+    negative = implied_probability(negative_odds)
+    denom = positive + negative
+    return pd.Series(
+        np.where(denom > 0, positive / denom, np.nan),
+        index=positive_odds.index,
+        dtype=float,
+    )
+
+
 def engineered_features(df: pd.DataFrame, base_features: list[str]) -> pd.DataFrame:
-    x = df.reindex(columns=base_features + ["spread_line", "total_line"]).copy()
+    extra_columns = [
+        "spread_line", "total_line",
+        "home_spread_odds", "away_spread_odds",
+        "over_odds", "under_odds",
+        "home_moneyline", "away_moneyline",
+        "div_game", "weekday", "gametime", "roof",
+    ]
+    x = df.reindex(columns=base_features + extra_columns).copy()
 
     spread = numeric(x["spread_line"])
     total = numeric(x["total_line"])
@@ -103,6 +141,52 @@ def engineered_features(df: pd.DataFrame, base_features: list[str]) -> pd.DataFr
     x["total_line_sq"] = total.pow(2)
     x["spread_total_interaction"] = spread * total
     x["home_favorite"] = (spread > 0).astype(float)
+
+    # NFL spreads cluster around key football margins. Distance to those
+    # numbers is more useful than asking a tree to rediscover the geometry.
+    x["spread_dist_3"] = (spread.abs() - 3.0).abs()
+    x["spread_dist_6"] = (spread.abs() - 6.0).abs()
+    x["spread_dist_7"] = (spread.abs() - 7.0).abs()
+    x["spread_dist_10"] = (spread.abs() - 10.0).abs()
+
+    # The market price contains information beyond the headline line. Convert
+    # both sides to no-vig shares so juice imbalance is comparable over time.
+    x["spread_home_novig"] = no_vig_share(
+        x["home_spread_odds"],
+        x["away_spread_odds"],
+    )
+    x["total_over_novig"] = no_vig_share(
+        x["over_odds"],
+        x["under_odds"],
+    )
+    x["moneyline_home_novig"] = no_vig_share(
+        x["home_moneyline"],
+        x["away_moneyline"],
+    )
+    x["spread_juice_signal"] = x["spread_home_novig"] - 0.5
+    x["total_juice_signal"] = x["total_over_novig"] - 0.5
+
+    # Pregame-known context only. Avoid historical game-time weather because
+    # the exact observed weather is unavailable at Thursday inference time.
+    x["divisional_game"] = numeric(x["div_game"])
+    roof = x["roof"].astype(str).str.lower()
+    x["indoors"] = roof.isin(["dome", "closed"]).astype(float)
+    weekday = x["weekday"].astype(str).str.lower()
+    gametime_hour = pd.to_numeric(
+        x["gametime"].astype(str).str.slice(0, 2),
+        errors="coerce",
+    )
+    x["primetime"] = (
+        weekday.str.startswith("thurs")
+        | weekday.str.startswith("mon")
+        | gametime_hour.ge(19)
+    ).astype(float)
+
+    # Drop raw strings after deriving stable numeric indicators.
+    x = x.drop(
+        columns=["weekday", "gametime", "roof"],
+        errors="ignore",
+    )
 
     for feature in base_features:
         if not feature.startswith("home_pre_"):

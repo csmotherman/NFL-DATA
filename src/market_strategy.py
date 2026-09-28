@@ -451,8 +451,9 @@ def season_breakdown(
 
 def select_strategy(rows: pd.DataFrame, kind: str) -> dict:
     """
-    Search sign, direction and price-adjusted probability threshold using only
-    prior out-of-sample rows. If nothing is repeatable, return NO BET.
+    Search direction, market regime and price-adjusted probability threshold
+    using only prior out-of-sample rows. If nothing is repeatable, return
+    NO BET.
     """
     if rows.empty:
         return {
@@ -487,16 +488,22 @@ def select_strategy(rows: pd.DataFrame, kind: str) -> dict:
                         "segment": segment,
                         "threshold": float(threshold),
                     }
-                    stats = evaluate_strategy(oriented, kind, strategy)
-                    if stats["bets"] < min_bets or stats["roi"] is None:
+                    stats = evaluate_strategy(
+                        oriented, kind, strategy
+                    )
+                    if (
+                        stats["bets"] < min_bets
+                        or stats["roi"] is None
+                    ):
                         continue
 
                     by_season = season_breakdown(
                         oriented, kind, strategy
                     )
-                profitable = sum(
+                    profitable = sum(
                         1 for row in by_season
-                        if row["roi"] is not None and row["roi"] > 0
+                        if row["roi"] is not None
+                        and row["roi"] > 0
                     )
                     season_count = len(by_season)
                     season_rois = [
@@ -553,9 +560,15 @@ def select_strategy(rows: pd.DataFrame, kind: str) -> dict:
                             profitable_share, 4
                         ),
                         "roi_sd": round(roi_sd, 4),
-                        "recent_roi": round(float(recent_roi), 4),
-                        "latest_season_roi": round(float(latest_roi), 4),
-                        "robust_score": round(robust_score, 6),
+                        "recent_roi": round(
+                            float(recent_roi), 4
+                        ),
+                        "latest_season_roi": round(
+                            float(latest_roi), 4
+                        ),
+                        "robust_score": round(
+                            robust_score, 6
+                        ),
                         "stable": bool(stable),
                         "by_season": by_season,
                     })

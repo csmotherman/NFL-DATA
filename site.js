@@ -266,6 +266,65 @@
     }).join('');
   }
 
+  function spreadResult(row) {
+    const pick = String(row.spread_pick || '').toUpperCase();
+    const line = num(row.spread_pick_line);
+    const home = num(row.home_score);
+    const away = num(row.away_score);
+
+    if (!pick || line === null || home === null || away === null) return 'push';
+
+    let pickedScore;
+    let opponentScore;
+
+    if (pick === String(row.home_team).toUpperCase()) {
+      pickedScore = home;
+      opponentScore = away;
+    } else if (pick === String(row.away_team).toUpperCase()) {
+      pickedScore = away;
+      opponentScore = home;
+    } else {
+      return 'push';
+    }
+
+    const coveredBy = pickedScore + line - opponentScore;
+    if (coveredBy > 0) return 'win';
+    if (coveredBy < 0) return 'loss';
+    return 'push';
+  }
+
+  function totalResult(row) {
+    const pick = String(row.total_pick || '').toUpperCase();
+    const line = num(row.total_line);
+    const home = num(row.home_score);
+    const away = num(row.away_score);
+
+    if (!pick || line === null || home === null || away === null) return 'push';
+
+    const total = home + away;
+    if (total === line) return 'push';
+    if (pick === 'OVER') return total > line ? 'win' : 'loss';
+    if (pick === 'UNDER') return total < line ? 'win' : 'loss';
+    return 'push';
+  }
+
+  function moneylineResult(row) {
+    const pick = String(row.moneyline_pick || '').toUpperCase();
+    const home = num(row.home_score);
+    const away = num(row.away_score);
+
+    if (!pick || home === null || away === null || home === away) return 'push';
+
+    const winner = home > away ? String(row.home_team).toUpperCase() : String(row.away_team).toUpperCase();
+    return pick === winner ? 'win' : 'loss';
+  }
+
+  function resultClass(result) {
+    if (result === 'win') return ' result-win';
+    if (result === 'loss') return ' result-loss';
+    return ' result-push';
+  }
+
   function renderCompleted() {
     const rows = state.board
       .filter(isFinal)
@@ -274,15 +333,19 @@
     $('completedSection').hidden = rows.length === 0;
 
     $('completedBody').innerHTML = rows.map((row) => {
+      const spreadGrade = spreadResult(row);
+      const totalGrade = totalResult(row);
+      const moneylineGrade = moneylineResult(row);
+
       return '<tr>' +
         '<td><span class="game-main">' + esc(row.away_team + ' @ ' + row.home_team) + '</span><span class="game-sub">' + esc(dateLabel(row.gameday)) + '</span></td>' +
         '<td class="number">' + esc(finalScore(row)) + '</td>' +
         '<td class="number">' + esc(projectedScore(row)) + '</td>' +
-        '<td class="number">' + esc((row.spread_pick || '—') + ' ' + signed(row.spread_pick_line, 1)) + '</td>' +
+        '<td class="number' + resultClass(spreadGrade) + '">' + esc((row.spread_pick || '—') + ' ' + signed(row.spread_pick_line, 1)) + '</td>' +
         '<td class="number">' + esc(signed(row.spread_edge, 1)) + '</td>' +
-        '<td class="number">' + esc((row.total_pick || '—') + ' ' + fmt(row.total_line, 1)) + '</td>' +
+        '<td class="number' + resultClass(totalGrade) + '">' + esc((row.total_pick || '—') + ' ' + fmt(row.total_line, 1)) + '</td>' +
         '<td class="number">' + esc(signed(row.total_edge, 1)) + '</td>' +
-        '<td class="number">' + esc((row.moneyline_pick || '—') + ' ' + odds(row.moneyline_price)) + '</td>' +
+        '<td class="number' + resultClass(moneylineGrade) + '">' + esc((row.moneyline_pick || '—') + ' ' + odds(row.moneyline_price)) + '</td>' +
         '</tr>';
     }).join('');
   }

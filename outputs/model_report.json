@@ -742,18 +742,18 @@
       "validated_threshold": null
     }
   },
-  "generated_at_utc": "2026-09-27T17:14:56Z",
+  "generated_at_utc": "2026-09-28T14:58:48Z",
   "training_start_season": 2018,
   "current_season": 2026,
   "target_week": 3,
   "rolling_games": 8,
   "min_rolling_games": 3,
-  "historical_training_games_final_fit": 2080,
+  "historical_training_games_final_fit": 2094,
   "spread_watch_threshold": 3.0,
   "total_watch_threshold": 3.0,
   "validated_spread_threshold": null,
   "validated_total_threshold": null,
-  "candidate_count": 11,
+  "candidate_count": 7,
   "notes": [
     "Independent football projections do not use sportsbook lines.",
     "Betting edges come from separate historical market-residual models.",

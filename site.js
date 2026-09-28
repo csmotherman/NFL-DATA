@@ -192,8 +192,23 @@
 
   function statusText(value) {
     const status = String(value || '—').toUpperCase();
-    const muted = status === 'LEAN' || status === '—' || status === 'NOT_LISTED' || status === 'NOT LISTED';
+    const muted = status === 'LEAN' || status === 'NO BET' || status === 'NO LINE' ||
+      status === '—' || status === 'NOT_LISTED' || status === 'NOT LISTED';
     return '<span class="status-text' + (muted ? ' muted' : '') + '">' + esc(status.replace(/_/g, ' ')) + '</span>';
+  }
+
+  function isApprovedBet(status) {
+    return String(status || '').toUpperCase() === 'VALIDATED';
+  }
+
+  function spreadBetText(row) {
+    if (!isApprovedBet(row.spread_status) || !row.spread_pick) return 'NO BET';
+    return row.spread_pick + ' ' + signed(row.spread_pick_line, 1);
+  }
+
+  function totalBetText(row) {
+    if (!isApprovedBet(row.total_status) || !row.total_pick) return 'NO BET';
+    return row.total_pick + ' ' + fmt(row.total_line, 1);
   }
 
   function summaryCard(label, value, meta) {
@@ -207,8 +222,8 @@
   function renderWeekSummary() {
     const upcoming = state.board.filter((row) => !isFinal(row));
     const completed = state.board.filter(isFinal);
-    const spreadSignals = upcoming.filter((row) => String(row.spread_status).toUpperCase() !== 'LEAN').length;
-    const totalSignals = upcoming.filter((row) => String(row.total_status).toUpperCase() !== 'LEAN').length;
+    const spreadSignals = upcoming.filter((row) => isApprovedBet(row.spread_status)).length;
+    const totalSignals = upcoming.filter((row) => isApprovedBet(row.total_status)).length;
 
     const maxEdge = upcoming.reduce((best, row) => {
       return Math.max(best, Math.abs(num(row.spread_edge) || 0), Math.abs(num(row.total_edge) || 0));
@@ -216,8 +231,8 @@
 
     $('weekSummary').innerHTML =
       summaryCard('Upcoming', String(upcoming.length), completed.length + ' completed in current file') +
-      summaryCard('Spread Signals', String(spreadSignals), 'WATCH / VALIDATED') +
-      summaryCard('Total Signals', String(totalSignals), 'WATCH / VALIDATED') +
+      summaryCard('Spread Bets', String(spreadSignals), 'Validated wagers only') +
+      summaryCard('Total Bets', String(totalSignals), 'Validated wagers only') +
       summaryCard('Largest Edge', maxEdge ? maxEdge.toFixed(1) + ' pts' : '—', 'Current upcoming games');
 
     if (state.board.length) {
@@ -235,9 +250,9 @@
           ['WATCH', 'VALIDATED'].includes(String(row.total_status).toUpperCase());
       });
     } else if (filter === 'spread') {
-      rows = rows.filter((row) => Math.abs(num(row.spread_edge) || 0) >= 1.5);
+      rows = rows.filter((row) => isApprovedBet(row.spread_status));
     } else if (filter === 'total') {
-      rows = rows.filter((row) => Math.abs(num(row.total_edge) || 0) >= 1.5);
+      rows = rows.filter((row) => isApprovedBet(row.total_status));
     }
 
     return rows.sort((a, b) => String(a.gameday).localeCompare(String(b.gameday)));
@@ -253,12 +268,12 @@
         '<td class="number">' + esc(projectedScore(row)) + '</td>' +
         '<td class="number">' + esc(modelMargin(row)) + '</td>' +
         '<td class="number">' + esc(marketSpread(row)) + '</td>' +
-        '<td class="number strong">' + esc((row.spread_pick || '—') + ' ' + signed(row.spread_pick_line, 1)) + '</td>' +
+        '<td class="number strong">' + esc(spreadBetText(row)) + '</td>' +
         '<td class="number">' + esc(signed(row.spread_edge, 1)) + '</td>' +
         '<td>' + statusText(row.spread_status) + '</td>' +
         '<td class="number">' + esc(fmt(row.total_line, 1)) + '</td>' +
         '<td class="number">' + esc(fmt(row.model_total, 1)) + '</td>' +
-        '<td class="number strong">' + esc((row.total_pick || '—') + ' ' + fmt(row.total_line, 1)) + '</td>' +
+        '<td class="number strong">' + esc(totalBetText(row)) + '</td>' +
         '<td class="number">' + esc(signed(row.total_edge, 1)) + '</td>' +
         '<td class="number strong">' + esc(row.moneyline_pick || '—') + '</td>' +
         '<td class="number">' + esc(odds(row.moneyline_price)) + '</td>' +
@@ -267,6 +282,7 @@
   }
 
   function spreadResult(row) {
+    if (!isApprovedBet(row.spread_status)) return 'skip';
     const pick = String(row.spread_pick || '').toUpperCase();
     const line = num(row.spread_pick_line);
     const home = num(row.home_score);
@@ -294,6 +310,7 @@
   }
 
   function totalResult(row) {
+    if (!isApprovedBet(row.total_status)) return 'skip';
     const pick = String(row.total_pick || '').toUpperCase();
     const line = num(row.total_line);
     const home = num(row.home_score);
@@ -322,7 +339,8 @@
   function resultClass(result) {
     if (result === 'win') return ' result-win';
     if (result === 'loss') return ' result-loss';
-    return ' result-push';
+    if (result === 'push') return ' result-push';
+    return '';
   }
 
   function completedRowsHtml(rows) {
@@ -335,9 +353,9 @@
         '<td><span class="game-main">' + esc(row.away_team + ' @ ' + row.home_team) + '</span><span class="game-sub">' + esc(dateLabel(row.gameday)) + '</span></td>' +
         '<td class="number">' + esc(finalScore(row)) + '</td>' +
         '<td class="number">' + esc(projectedScore(row)) + '</td>' +
-        '<td class="number' + resultClass(spreadGrade) + '">' + esc((row.spread_pick || '—') + ' ' + signed(row.spread_pick_line, 1)) + '</td>' +
+        '<td class="number' + resultClass(spreadGrade) + '">' + esc(spreadBetText(row)) + '</td>' +
         '<td class="number">' + esc(signed(row.spread_edge, 1)) + '</td>' +
-        '<td class="number' + resultClass(totalGrade) + '">' + esc((row.total_pick || '—') + ' ' + fmt(row.total_line, 1)) + '</td>' +
+        '<td class="number' + resultClass(totalGrade) + '">' + esc(totalBetText(row)) + '</td>' +
         '<td class="number">' + esc(signed(row.total_edge, 1)) + '</td>' +
         '<td class="number' + resultClass(moneylineGrade) + '">' + esc((row.moneyline_pick || '—') + ' ' + odds(row.moneyline_price)) + '</td>' +
         '</tr>';
@@ -572,9 +590,9 @@
           '<td class="number">' + esc(row.season + ' W' + Number(row.week)) + '</td>' +
           '<td><span class="game-main">' + esc(row.away_team + ' @ ' + row.home_team) + '</span><span class="game-sub">' + esc(dateLabel(row.gameday)) + '</span></td>' +
           '<td class="number">' + esc(row.final_score || '—') + '</td>' +
-          '<td class="number">' + esc((row.spread_pick || '—') + ' ' + signed(row.spread_pick_line, 1)) + '</td>' +
+          '<td class="number">' + esc(spreadBetText(row)) + '</td>' +
           '<td>' + statusText(row.spread_result) + '</td>' +
-          '<td class="number">' + esc((row.total_pick || '—') + ' ' + fmt(row.total_line, 1)) + '</td>' +
+          '<td class="number">' + esc(totalBetText(row)) + '</td>' +
           '<td>' + statusText(row.total_result) + '</td>' +
           '<td class="number">' + esc((row.moneyline_pick || '—') + ' ' + odds(row.moneyline_price)) + '</td>' +
           '<td>' + statusText(row.moneyline_result) + '</td>' +
@@ -631,9 +649,9 @@
           '<td><span class="game-main">' + esc(row.away_team + ' @ ' + row.home_team) + '</span><span class="game-sub">' + esc(dateLabel(row.gameday)) + '</span></td>' +
           '<td class="number">' + esc(finalScore(row)) + '</td>' +
           '<td class="number">' + esc(projectedScore(row)) + '</td>' +
-          '<td class="number' + resultClass(spreadGrade) + '">' + esc((row.spread_pick || '—') + ' ' + signed(row.spread_pick_line, 1)) + '</td>' +
+          '<td class="number' + resultClass(spreadGrade) + '">' + esc(spreadBetText(row)) + '</td>' +
           '<td class="number">' + esc(signed(row.spread_edge, 1)) + '</td>' +
-          '<td class="number' + resultClass(totalGrade) + '">' + esc((row.total_pick || '—') + ' ' + fmt(row.total_line, 1)) + '</td>' +
+          '<td class="number' + resultClass(totalGrade) + '">' + esc(totalBetText(row)) + '</td>' +
           '<td class="number">' + esc(signed(row.total_edge, 1)) + '</td>' +
           '<td class="number' + resultClass(moneylineGrade) + '">' + esc((row.moneyline_pick || '—') + ' ' + odds(row.moneyline_price)) + '</td>' +
           '</tr>';

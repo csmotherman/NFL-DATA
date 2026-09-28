@@ -216,12 +216,10 @@ def enrich_board(
     else:
         board["total_status"] = board["total_status"].fillna("NO BET")
 
-    board["moneyline_pick"] = board["model_favorite"]
-    board["moneyline_price"] = np.where(
-        board["moneyline_pick"].eq(board["home_team"]),
-        board.get("home_moneyline", np.nan),
-        board.get("away_moneyline", np.nan),
-    )
+    # Moneyline remains out of production until a price-aware ML strategy
+    # passes the same historical/forward validation standard as spreads.
+    board["moneyline_pick"] = ""
+    board["moneyline_price"] = np.nan
     board["spread_odds"] = np.select(
         [
             board["spread_pick"].eq(board["home_team"]),

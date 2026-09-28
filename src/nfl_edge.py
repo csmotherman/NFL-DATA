@@ -41,6 +41,12 @@ from sklearn.metrics import mean_absolute_error
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
+from market_strategy import (
+    fit_final_market_model,
+    predict_current_market,
+    walk_forward_strategy_validation,
+)
+
 
 ROLLING_GAMES = 8
 MIN_ROLLING_GAMES = 3
@@ -125,7 +131,11 @@ def load_data(seasons: list[int]) -> tuple[pd.DataFrame, pd.DataFrame]:
 def normalize_schedule(schedules: pd.DataFrame) -> pd.DataFrame:
     s = schedules.copy()
     s["gameday"] = pd.to_datetime(s["gameday"], errors="coerce")
-    for c in ["home_score", "away_score", "spread_line", "total_line", "home_rest", "away_rest"]:
+    for c in [
+        "home_score", "away_score", "spread_line", "total_line",
+        "home_rest", "away_rest", "away_moneyline", "home_moneyline",
+        "away_spread_odds", "home_spread_odds", "over_odds", "under_odds",
+    ]:
         if c in s.columns:
             s[c] = pd.to_numeric(s[c], errors="coerce")
         else:
@@ -1084,20 +1094,26 @@ def main() -> None:
 
     dataset, feature_cols = build_historical_dataset(schedules, pregame)
 
-    # Evaluate one recent holdout plus a harder rolling-origin market test.
+    # Keep the independent football holdout as a sanity check, but make the
+    # betting decision layer explicitly market-first. Strategy selection is
+    # nested walk-forward: signs, sides and thresholds are chosen only from
+    # prior out-of-sample seasons before each untouched test season.
     report = evaluate_holdout(dataset, feature_cols, current_season=season)
-    walk_forward = walk_forward_market_validation(
+    market_validation = walk_forward_strategy_validation(
         dataset,
         feature_cols,
         current_season=season,
     )
-    report["walk_forward_market_validation"] = walk_forward
+    report["market_strategy_validation"] = market_validation
+    # Preserve this key for the website while changing the underlying method
+    # from residual-MAE thresholds to probability/price strategy validation.
+    report["walk_forward_market_validation"] = market_validation
 
     validated_spread_threshold = (
-        walk_forward.get("spread", {}).get("validated_threshold")
+        market_validation.get("spread", {}).get("validated_threshold")
     )
     validated_total_threshold = (
-        walk_forward.get("total", {}).get("validated_threshold")
+        market_validation.get("total", {}).get("validated_threshold")
     )
 
     # Final independent football models use all completed games.
@@ -1110,9 +1126,13 @@ def main() -> None:
         dataset["target_total"],
     )
 
-    # Betting layer: learn historical residuals versus available market prices.
-    spread_resid_model, total_resid_model, market_feature_cols = (
-        fit_market_residual_models(dataset, feature_cols)
+    # Betting layer: directly model cover / over probabilities rather than
+    # minimizing score error. These are the models used for wagering decisions.
+    spread_market_model = fit_final_market_model(
+        dataset, feature_cols, "spread"
+    )
+    total_market_model = fit_final_market_model(
+        dataset, feature_cols, "total"
     )
 
     target_week = infer_target_week(schedules, season, args.week)
@@ -1130,52 +1150,55 @@ def main() -> None:
     upcoming["independent_home_margin"] = margin_model.predict(upcoming[feature_cols])
     upcoming["independent_total"] = total_model.predict(upcoming[feature_cols])
 
-    # Market-residual betting layer. If a line is unavailable, keep betting edge NaN.
-    for c in market_feature_cols:
-        if c not in upcoming.columns:
-            upcoming[c] = np.nan
+    # Direct market probabilities. The selected sign/direction/threshold is
+    # learned from prior OOF seasons; if it does not survive the outer
+    # walk-forward test the row is WATCH/NO BET rather than being forced.
+    upcoming = predict_current_market(
+        spread_market_model,
+        upcoming,
+        feature_cols,
+        "spread",
+        market_validation.get("spread", {}),
+    )
+    upcoming = predict_current_market(
+        total_market_model,
+        upcoming,
+        feature_cols,
+        "total",
+        market_validation.get("total", {}),
+    )
 
-    spread_residual_pred = spread_resid_model.predict(upcoming[market_feature_cols])
-    total_residual_pred = total_resid_model.predict(upcoming[market_feature_cols])
-
+    # Keep point-space disagreement for interpretation only. These values no
+    # longer determine the bet direction.
     upcoming["spread_edge"] = np.where(
         upcoming["spread_line"].notna(),
-        spread_residual_pred,
+        upcoming["independent_home_margin"] - upcoming["spread_line"],
         np.nan,
     )
     upcoming["total_edge"] = np.where(
         upcoming["total_line"].notna(),
-        total_residual_pred,
+        upcoming["independent_total"] - upcoming["total_line"],
         np.nan,
     )
-
-    upcoming["model_home_margin"] = np.where(
-        upcoming["spread_line"].notna(),
-        upcoming["spread_line"] + upcoming["spread_edge"],
-        upcoming["independent_home_margin"],
-    )
-    upcoming["model_total"] = np.where(
-        upcoming["total_line"].notna(),
-        upcoming["total_line"] + upcoming["total_edge"],
-        upcoming["independent_total"],
-    )
+    upcoming["model_home_margin"] = upcoming["independent_home_margin"]
+    upcoming["model_total"] = upcoming["independent_total"]
 
     upcoming["model_favorite"] = np.where(
         upcoming["model_home_margin"] > 0,
         upcoming["home_team"],
         upcoming["away_team"],
     )
-    upcoming["model_total_lean"] = np.where(
-        upcoming["total_edge"] > 0,
-        "OVER",
-        "UNDER",
-    )
+    upcoming["model_total_lean"] = upcoming["total_pick"]
 
     prediction_cols = [
         "season", "week", "gameday", "game_id",
         "away_team", "home_team",
         "independent_home_margin", "model_home_margin", "spread_line", "spread_edge",
+        "spread_pick", "spread_probability", "spread_probability_edge",
+        "spread_expected_value", "spread_market_price", "spread_status",
         "independent_total", "model_total", "total_line", "total_edge",
+        "total_pick", "total_probability", "total_probability_edge",
+        "total_expected_value", "total_market_price", "total_status",
         "model_favorite", "model_total_lean",
         "home_games_in_window", "away_games_in_window",
     ]
@@ -1225,12 +1248,13 @@ def main() -> None:
         "validated_total_threshold": validated_total_threshold,
         "candidate_count": int(len(candidates)),
         "notes": [
-            "Independent football projections do not use sportsbook lines.",
-            "Betting edges come from separate historical market-residual models.",
-            "Historical features are shifted before each game.",
-            "Current market edges are promoted to VALIDATED only when a threshold survives multi-season rolling-origin tests.",
-            "If no threshold survives, current discrepancies remain WATCH signals.",
-            "Matchup WATCH rows are not market-value claims.",
+            "Independent football projections remain a descriptive sanity check only.",
+            "Spread bets directly model home-cover probability; total bets directly model over probability.",
+            "Bet selection uses quoted price break-even probability, not raw prediction error.",
+            "Sign orientation, one-sided/two-sided rules, and probability-edge thresholds are selected only on prior out-of-sample seasons.",
+            "The outer walk-forward seasons grade the entire strategy-selection process on untouched future seasons.",
+            "If the strategy does not survive the outer validation, production does not label it VALIDATED.",
+            "Historical football features remain shifted before each game.",
         ],
     })
     serialize_report(report, output_dir)

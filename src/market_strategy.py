@@ -12,6 +12,7 @@ from sklearn.preprocessing import StandardScaler
 
 
 DEFAULT_PRICE = -110.0
+CAUTION_EDGE_THRESHOLD = 0.08
 OUTER_SEASONS = list(range(2018, 2026))
 EDGE_THRESHOLDS = [0.00, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.08, 0.10, 0.12, 0.15, 0.18, 0.20]
 SIDE_MODES = ["both", "positive", "negative"]
@@ -989,24 +990,57 @@ def walk_forward_strategy_validation(
             current_shadow,
             frozen_confirmation,
         )
-        production_enabled = bool(
+
+        historical_pass = bool(
             strategy_validated
             and frozen_confirmation.get("passed", False)
-            and not regime_check.get("alert", False)
         )
-        if not production_enabled:
-            disabled_reason = (
-                "Current-season regime circuit breaker is active."
-                if regime_check.get("alert", False)
-                else "Historical validation gates did not pass."
+        if historical_pass and regime_check.get("alert", False):
+            production_mode = "CAUTION"
+            production_strategy = dict(
+                frozen_confirmation.get("frozen_strategy") or {}
             )
+            production_strategy["threshold"] = max(
+                float(production_strategy.get("threshold", 0.0)),
+                CAUTION_EDGE_THRESHOLD,
+            )
+            production_strategy["reason"] = (
+                "Historical edge passed confirmation, but the current-season "
+                "shadow triggered the regime alert. Using the same frozen "
+                "policy with a stricter probability-edge threshold."
+            )
+        elif historical_pass:
+            production_mode = "VALIDATED"
+            production_strategy = dict(
+                frozen_confirmation.get("frozen_strategy") or {}
+            )
+            production_strategy["reason"] = (
+                "Frozen historical policy passed confirmation and the "
+                "current-season regime check."
+            )
+        else:
+            production_mode = "OFF"
             production_strategy = {
                 "orientation": "normal",
                 "side_mode": "none",
                 "segment": "all",
                 "threshold": 1.0,
-                "reason": disabled_reason,
+                "reason": "Historical validation gates did not pass.",
             }
+
+        production_enabled = production_mode in {"VALIDATED", "CAUTION"}
+
+        caution_shadow = None
+        if (
+            production_mode == "CAUTION"
+            and len(current_rows)
+            and "shadow_eval" in locals()
+        ):
+            caution_shadow = evaluate_strategy(
+                shadow_eval,
+                kind,
+                production_strategy,
+            )
 
         output[kind] = {
             "status": "ok",
@@ -1038,7 +1072,9 @@ def walk_forward_strategy_validation(
                 and frozen_confirmation.get("passed", False)
             ),
             "production_enabled": production_enabled,
+            "production_mode": production_mode,
             "regime_check": regime_check,
+            "caution_shadow": caution_shadow,
             "nested_strategy_validated": bool(
                 strategy_validated
             ),
@@ -1142,17 +1178,22 @@ def predict_current_market(
     ).notna()
     qualified &= has_line
 
-    validated = bool(
-        validation.get("strategy_validated")
-    )
+    production_mode = str(
+        validation.get("production_mode", "OFF")
+    ).upper()
+    if production_mode not in {"VALIDATED", "CAUTION"}:
+        production_mode = "OFF"
+
     status = np.where(
         ~has_line,
         "NO LINE",
         np.where(
-            qualified & validated,
+            qualified & (production_mode == "VALIDATED"),
             "VALIDATED",
             np.where(
-                qualified, "WATCH", "NO BET"
+                qualified & (production_mode == "CAUTION"),
+                "CAUTION",
+                "NO BET",
             ),
         ),
     )
@@ -1178,7 +1219,7 @@ def predict_current_market(
     # A "pick" is an approved wager, not merely the classifier's preferred
     # direction. Anything else stays available as candidate_side for research.
     annotated[f"{prefix}_pick"] = np.where(
-        status == "VALIDATED",
+        np.isin(status, ["VALIDATED", "CAUTION"]),
         candidate_side,
         "",
     )

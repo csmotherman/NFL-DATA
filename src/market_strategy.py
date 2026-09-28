@@ -694,6 +694,88 @@ def fixed_threshold_diagnostics(
     return output
 
 
+def frozen_confirmation_test(
+    dataset: pd.DataFrame,
+    base_features: list[str],
+    kind: str,
+    discovery_end_season: int = 2021,
+    confirmation_start_season: int = 2022,
+    current_season: int = 2026,
+) -> dict:
+    """
+    Select exactly one policy on early OOF seasons, freeze it, then grade that
+    unchanged policy on later untouched seasons. This is intentionally harder
+    than retuning a threshold every season.
+    """
+    full_oof = generate_oof_predictions(
+        dataset,
+        base_features,
+        kind,
+        max_season_exclusive=current_season,
+    )
+    discovery = full_oof[
+        full_oof["season"] <= discovery_end_season
+    ].copy()
+    confirmation = full_oof[
+        (full_oof["season"] >= confirmation_start_season)
+        & (full_oof["season"] < current_season)
+    ].copy()
+
+    strategy = select_strategy(discovery, kind)
+    if confirmation.empty:
+        return {
+            "discovery_through": int(discovery_end_season),
+            "confirmation_from": int(confirmation_start_season),
+            "frozen_strategy": strategy,
+            "passed": False,
+            "reason": "No confirmation rows available.",
+        }
+
+    confirmation = annotate_probabilities(
+        confirmation,
+        confirmation["raw_probability_positive"].to_numpy(dtype=float),
+        kind,
+        orientation=strategy.get("orientation", "normal"),
+    )
+    stats = evaluate_strategy(
+        confirmation,
+        kind,
+        strategy,
+    )
+    by_season = season_breakdown(
+        confirmation,
+        kind,
+        strategy,
+    )
+    profitable_seasons = sum(
+        1 for row in by_season
+        if row["roi"] is not None and row["roi"] > 0
+    )
+    seasons_with_bets = len(by_season)
+
+    passed = (
+        stats["bets"] >= 75
+        and stats["roi"] is not None
+        and stats["roi"] > 0
+        and stats["win_rate"] is not None
+        and stats["win_rate"] > break_even_probability(DEFAULT_PRICE)
+        and seasons_with_bets >= 3
+        and profitable_seasons
+        >= math.ceil(seasons_with_bets * 0.60)
+    )
+
+    return {
+        "discovery_through": int(discovery_end_season),
+        "confirmation_from": int(confirmation_start_season),
+        "frozen_strategy": strategy,
+        **stats,
+        "seasons_with_bets": int(seasons_with_bets),
+        "profitable_seasons": int(profitable_seasons),
+        "by_season": by_season,
+        "passed": bool(passed),
+    }
+
+
 def walk_forward_strategy_validation(
     dataset: pd.DataFrame,
     base_features: list[str],
@@ -840,6 +922,14 @@ def walk_forward_strategy_validation(
             and profitable_seasons
             >= math.ceil(seasons_with_bets * 0.60)
         )
+        frozen_confirmation = frozen_confirmation_test(
+            dataset,
+            base_features,
+            kind,
+            discovery_end_season=2021,
+            confirmation_start_season=2022,
+            current_season=current_season,
+        )
 
         output[kind] = {
             "status": "ok",
@@ -868,7 +958,12 @@ def walk_forward_strategy_validation(
             ),
             "strategy_validated": bool(
                 strategy_validated
+                and frozen_confirmation.get("passed", False)
             ),
+            "nested_strategy_validated": bool(
+                strategy_validated
+            ),
+            "frozen_confirmation": frozen_confirmation,
             "current_season_shadow": current_shadow,
             "final_strategy": final_strategy,
             "thresholds": fixed_threshold_diagnostics(
@@ -877,6 +972,7 @@ def walk_forward_strategy_validation(
             "validated_threshold": (
                 final_strategy.get("threshold")
                 if strategy_validated
+                and frozen_confirmation.get("passed", False)
                 and final_strategy.get("side_mode")
                 != "none"
                 else None

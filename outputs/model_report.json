@@ -674,6 +674,17 @@
       "seasons_with_bets": 8,
       "profitable_seasons": 5,
       "strategy_validated": true,
+      "production_enabled": false,
+      "regime_check": {
+        "alert": true,
+        "p_value": 0.066,
+        "expected_win_rate": 0.544,
+        "current_win_rate": 0.2727,
+        "bets": 11,
+        "wins": 3,
+        "losses": 8,
+        "reason": "Current-season shadow performance is statistically inconsistent with the frozen confirmation rate."
+      },
       "nested_strategy_validated": true,
       "frozen_confirmation": {
         "discovery_through": 2021,
@@ -796,71 +807,10 @@
       },
       "production_strategy": {
         "orientation": "normal",
-        "side_mode": "negative",
-        "segment": "short_line",
-        "threshold": 0.02,
-        "bets": 263,
-        "wins": 149,
-        "losses": 114,
-        "win_rate": 0.5665,
-        "roi": 0.1111,
-        "profit_units": 29.212,
-        "seasons_with_bets": 5,
-        "profitable_seasons": 5,
-        "profitable_season_share": 1.0,
-        "roi_sd": 0.0637,
-        "recent_roi": 0.1512,
-        "latest_season_roi": 0.1756,
-        "robust_score": 0.189003,
-        "stable": true,
-        "by_season": [
-          {
-            "season": 2017,
-            "bets": 46,
-            "wins": 24,
-            "losses": 22,
-            "win_rate": 0.5217,
-            "roi": 0.0302,
-            "profit_units": 1.389
-          },
-          {
-            "season": 2018,
-            "bets": 51,
-            "wins": 27,
-            "losses": 24,
-            "win_rate": 0.5294,
-            "roi": 0.0368,
-            "profit_units": 1.875
-          },
-          {
-            "season": 2019,
-            "bets": 42,
-            "wins": 25,
-            "losses": 17,
-            "win_rate": 0.5952,
-            "roi": 0.1713,
-            "profit_units": 7.196
-          },
-          {
-            "season": 2020,
-            "bets": 69,
-            "wins": 40,
-            "losses": 29,
-            "win_rate": 0.5797,
-            "roi": 0.1318,
-            "profit_units": 9.095
-          },
-          {
-            "season": 2021,
-            "bets": 55,
-            "wins": 33,
-            "losses": 22,
-            "win_rate": 0.6,
-            "roi": 0.1756,
-            "profit_units": 9.657
-          }
-        ],
-        "candidates_tested": 190
+        "side_mode": "none",
+        "segment": "all",
+        "threshold": 1.0,
+        "reason": "Current-season regime circuit breaker is active."
       },
       "current_season_shadow": {
         "season": 2026,
@@ -2213,7 +2163,7 @@
           ]
         }
       },
-      "validated_threshold": 0.02
+      "validated_threshold": null
     },
     "total": {
       "status": "ok",
@@ -2810,6 +2760,12 @@
       "seasons_with_bets": 8,
       "profitable_seasons": 3,
       "strategy_validated": false,
+      "production_enabled": false,
+      "regime_check": {
+        "alert": false,
+        "p_value": null,
+        "reason": "Not enough current-season shadow bets for a regime test."
+      },
       "nested_strategy_validated": false,
       "frozen_confirmation": {
         "discovery_through": 2021,
@@ -2935,7 +2891,7 @@
         "side_mode": "none",
         "segment": "all",
         "threshold": 1.0,
-        "reason": "Frozen confirmation did not pass."
+        "reason": "Historical validation gates did not pass."
       },
       "current_season_shadow": {
         "season": 2026,
@@ -4887,6 +4843,17 @@
       "seasons_with_bets": 8,
       "profitable_seasons": 5,
       "strategy_validated": true,
+      "production_enabled": false,
+      "regime_check": {
+        "alert": true,
+        "p_value": 0.066,
+        "expected_win_rate": 0.544,
+        "current_win_rate": 0.2727,
+        "bets": 11,
+        "wins": 3,
+        "losses": 8,
+        "reason": "Current-season shadow performance is statistically inconsistent with the frozen confirmation rate."
+      },
       "nested_strategy_validated": true,
       "frozen_confirmation": {
         "discovery_through": 2021,
@@ -5009,71 +4976,10 @@
       },
       "production_strategy": {
         "orientation": "normal",
-        "side_mode": "negative",
-        "segment": "short_line",
-        "threshold": 0.02,
-        "bets": 263,
-        "wins": 149,
-        "losses": 114,
-        "win_rate": 0.5665,
-        "roi": 0.1111,
-        "profit_units": 29.212,
-        "seasons_with_bets": 5,
-        "profitable_seasons": 5,
-        "profitable_season_share": 1.0,
-        "roi_sd": 0.0637,
-        "recent_roi": 0.1512,
-        "latest_season_roi": 0.1756,
-        "robust_score": 0.189003,
-        "stable": true,
-        "by_season": [
-          {
-            "season": 2017,
-            "bets": 46,
-            "wins": 24,
-            "losses": 22,
-            "win_rate": 0.5217,
-            "roi": 0.0302,
-            "profit_units": 1.389
-          },
-          {
-            "season": 2018,
-            "bets": 51,
-            "wins": 27,
-            "losses": 24,
-            "win_rate": 0.5294,
-            "roi": 0.0368,
-            "profit_units": 1.875
-          },
-          {
-            "season": 2019,
-            "bets": 42,
-            "wins": 25,
-            "losses": 17,
-            "win_rate": 0.5952,
-            "roi": 0.1713,
-            "profit_units": 7.196
-          },
-          {
-            "season": 2020,
-            "bets": 69,
-            "wins": 40,
-            "losses": 29,
-            "win_rate": 0.5797,
-            "roi": 0.1318,
-            "profit_units": 9.095
-          },
-          {
-            "season": 2021,
-            "bets": 55,
-            "wins": 33,
-            "losses": 22,
-            "win_rate": 0.6,
-            "roi": 0.1756,
-            "profit_units": 9.657
-          }
-        ],
-        "candidates_tested": 190
+        "side_mode": "none",
+        "segment": "all",
+        "threshold": 1.0,
+        "reason": "Current-season regime circuit breaker is active."
       },
       "current_season_shadow": {
         "season": 2026,
@@ -6426,7 +6332,7 @@
           ]
         }
       },
-      "validated_threshold": 0.02
+      "validated_threshold": null
     },
     "total": {
       "status": "ok",
@@ -7023,6 +6929,12 @@
       "seasons_with_bets": 8,
       "profitable_seasons": 3,
       "strategy_validated": false,
+      "production_enabled": false,
+      "regime_check": {
+        "alert": false,
+        "p_value": null,
+        "reason": "Not enough current-season shadow bets for a regime test."
+      },
       "nested_strategy_validated": false,
       "frozen_confirmation": {
         "discovery_through": 2021,
@@ -7148,7 +7060,7 @@
         "side_mode": "none",
         "segment": "all",
         "threshold": 1.0,
-        "reason": "Frozen confirmation did not pass."
+        "reason": "Historical validation gates did not pass."
       },
       "current_season_shadow": {
         "season": 2026,
@@ -8504,7 +8416,7 @@
       "validated_threshold": null
     }
   },
-  "generated_at_utc": "2026-09-28T18:17:45Z",
+  "generated_at_utc": "2026-09-28T18:24:48Z",
   "training_start_season": 2014,
   "current_season": 2026,
   "target_week": 3,
@@ -8513,9 +8425,9 @@
   "historical_training_games_final_fit": 2982,
   "spread_watch_threshold": 3.0,
   "total_watch_threshold": 3.0,
-  "validated_spread_threshold": 0.02,
+  "validated_spread_threshold": null,
   "validated_total_threshold": null,
-  "candidate_count": 3,
+  "candidate_count": 0,
   "notes": [
     "Independent football projections remain a descriptive sanity check only.",
     "Spread bets directly model home-cover probability; total bets directly model over probability.",

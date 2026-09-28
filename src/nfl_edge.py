@@ -1025,7 +1025,7 @@ def build_candidates(
         return pd.DataFrame(columns=[
             "season", "week", "game_id", "away_team", "home_team",
             "model_home_margin", "market_home_margin", "spread_edge",
-            "spread_pick", "spread_probability", "spread_probability_edge",
+            "spread_candidate_side", "spread_pick", "spread_probability", "spread_probability_edge",
             "spread_expected_value", "spread_status",
             "model_total", "market_total", "total_edge", "total_pick",
             "total_probability", "total_probability_edge",
@@ -1183,7 +1183,10 @@ def main() -> None:
         upcoming["home_team"],
         upcoming["away_team"],
     )
-    upcoming["model_total_lean"] = upcoming["total_pick"]
+    upcoming["model_total_lean"] = upcoming.get(
+        "total_candidate_side",
+        upcoming["total_pick"],
+    )
 
     prediction_cols = [
         "season", "week", "gameday", "game_id",
@@ -1192,7 +1195,7 @@ def main() -> None:
         "spread_pick", "spread_probability", "spread_probability_edge",
         "spread_expected_value", "spread_market_price", "spread_status",
         "independent_total", "model_total", "total_line", "total_edge",
-        "total_pick", "total_probability", "total_probability_edge",
+        "total_candidate_side", "total_pick", "total_probability", "total_probability_edge",
         "total_expected_value", "total_market_price", "total_status",
         "model_favorite", "model_total_lean",
         "home_games_in_window", "away_games_in_window",

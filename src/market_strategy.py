@@ -694,6 +694,57 @@ def fixed_threshold_diagnostics(
     return output
 
 
+def binomial_lower_tail(wins: int, bets: int, expected_win_rate: float) -> float:
+    if bets <= 0 or expected_win_rate is None:
+        return 1.0
+    p = min(max(float(expected_win_rate), 1e-9), 1.0 - 1e-9)
+    return float(sum(
+        math.comb(bets, k) * (p ** k) * ((1.0 - p) ** (bets - k))
+        for k in range(int(wins) + 1)
+    ))
+
+
+def shadow_regime_check(
+    shadow: dict,
+    confirmation: dict,
+    min_bets: int = 10,
+    alert_p_value: float = 0.10,
+) -> dict:
+    bets = int(shadow.get("bets") or 0)
+    wins = int(shadow.get("wins") or 0)
+    expected = confirmation.get("win_rate")
+
+    if bets < min_bets or expected is None:
+        return {
+            "alert": False,
+            "p_value": None,
+            "reason": "Not enough current-season shadow bets for a regime test.",
+        }
+
+    p_value = binomial_lower_tail(wins, bets, float(expected))
+    roi = shadow.get("roi")
+    alert = (
+        roi is not None
+        and float(roi) < 0
+        and p_value <= alert_p_value
+    )
+    return {
+        "alert": bool(alert),
+        "p_value": round(float(p_value), 4),
+        "expected_win_rate": round(float(expected), 4),
+        "current_win_rate": shadow.get("win_rate"),
+        "bets": bets,
+        "wins": wins,
+        "losses": int(shadow.get("losses") or 0),
+        "reason": (
+            "Current-season shadow performance is statistically inconsistent "
+            "with the frozen confirmation rate."
+            if alert
+            else "Current-season shadow has not crossed the suspension threshold."
+        ),
+    }
+
+
 def frozen_confirmation_test(
     full_oof: pd.DataFrame,
     kind: str,
@@ -934,6 +985,29 @@ def walk_forward_strategy_validation(
                 )
             )
 
+        regime_check = shadow_regime_check(
+            current_shadow,
+            frozen_confirmation,
+        )
+        production_enabled = bool(
+            strategy_validated
+            and frozen_confirmation.get("passed", False)
+            and not regime_check.get("alert", False)
+        )
+        if not production_enabled:
+            disabled_reason = (
+                "Current-season regime circuit breaker is active."
+                if regime_check.get("alert", False)
+                else "Historical validation gates did not pass."
+            )
+            production_strategy = {
+                "orientation": "normal",
+                "side_mode": "none",
+                "segment": "all",
+                "threshold": 1.0,
+                "reason": disabled_reason,
+            }
+
         output[kind] = {
             "status": "ok",
             "method": "nested_walk_forward_classifier",
@@ -963,6 +1037,8 @@ def walk_forward_strategy_validation(
                 strategy_validated
                 and frozen_confirmation.get("passed", False)
             ),
+            "production_enabled": production_enabled,
+            "regime_check": regime_check,
             "nested_strategy_validated": bool(
                 strategy_validated
             ),
@@ -975,8 +1051,7 @@ def walk_forward_strategy_validation(
             ),
             "validated_threshold": (
                 frozen_confirmation.get("frozen_strategy", {}).get("threshold")
-                if strategy_validated
-                and frozen_confirmation.get("passed", False)
+                if production_enabled
                 and frozen_confirmation.get("frozen_strategy", {}).get("side_mode")
                 != "none"
                 else None

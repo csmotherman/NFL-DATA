@@ -448,8 +448,6 @@ def evaluate_strategy(
 
     mask = numeric(rows["market_probability_edge"]).ge(threshold)
     mask &= segment_mask(rows, kind, segment)
-    if kind == "spread":
-        mask &= spread_coherence_mask(rows)
     if side_mode == "positive":
         mask &= numeric(rows["market_side"]).eq(1)
     elif side_mode == "negative":
@@ -1374,16 +1372,6 @@ def walk_forward_strategy_validation(
             shadow_eval = current_rows.copy()
             shadow_eval["raw_probability_positive"] = shadow_probability
 
-            if kind == "spread":
-                shadow_margin_model = MarginRegressor().fit(
-                    historical_rows[base_features],
-                    historical_rows["target_margin"],
-                )
-                shadow_eval["independent_margin_prediction"] = (
-                    shadow_margin_model.predict(
-                        current_rows[base_features]
-                    )
-                )
             shadow_eval = annotate_probabilities(
                 shadow_eval,
                 shadow_probability,
@@ -1573,8 +1561,6 @@ def predict_current_market(
         kind,
         strategy.get("segment", "all"),
     )
-    if kind == "spread":
-        qualified &= spread_coherence_mask(annotated)
 
     if side_mode == "positive":
         qualified &= numeric(

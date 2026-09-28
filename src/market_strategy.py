@@ -69,9 +69,22 @@ class MarketClassifier:
             )),
         ])
 
-    def fit(self, X: pd.DataFrame, y: pd.Series):
-        self.linear.fit(X, y)
-        self.tree.fit(X, y)
+    def fit(
+        self,
+        X: pd.DataFrame,
+        y: pd.Series,
+        sample_weight: np.ndarray | None = None,
+    ):
+        if sample_weight is None:
+            self.linear.fit(X, y)
+            self.tree.fit(X, y)
+        else:
+            self.linear.fit(
+                X, y, model__sample_weight=sample_weight
+            )
+            self.tree.fit(
+                X, y, model__sample_weight=sample_weight
+            )
         return self
 
     def predict_proba(self, X: pd.DataFrame) -> np.ndarray:
@@ -100,6 +113,17 @@ def engineered_features(df: pd.DataFrame, base_features: list[str]) -> pd.DataFr
             x["diff_" + suffix] = numeric(df[feature]) - numeric(df[away_feature])
 
     return x
+
+
+def training_weights(rows: pd.DataFrame) -> np.ndarray:
+    """
+    Markets and scoring environments adapt quickly. Down-weight stale seasons
+    so a pattern from four or five years ago cannot dominate the current fit.
+    """
+    seasons = numeric(rows["season"]).to_numpy(dtype=float)
+    latest = np.nanmax(seasons)
+    gaps = np.maximum(latest - seasons, 0.0)
+    return np.maximum(np.power(0.70, gaps), 0.10)
 
 
 def market_rows(dataset: pd.DataFrame, kind: str) -> pd.DataFrame:
@@ -316,16 +340,36 @@ def select_strategy(rows: pd.DataFrame, kind: str) -> dict:
                     if season_count else 0.0
                 )
 
+                recent_rows = by_season[-2:]
+                recent_bets = sum(
+                    row["bets"] for row in recent_rows
+                )
+                recent_profit = sum(
+                    row["profit_units"] for row in recent_rows
+                )
+                recent_roi = (
+                    recent_profit / recent_bets
+                    if recent_bets else -1.0
+                )
+                latest_roi = (
+                    by_season[-1]["roi"]
+                    if by_season else -1.0
+                )
+
                 robust_score = (
-                    float(stats["roi"])
-                    - 0.35 * roi_sd
-                    + 0.015 * math.log1p(stats["bets"])
-                    + 0.03 * profitable_share
+                    0.55 * float(stats["roi"])
+                    + 0.45 * recent_roi
+                    - 0.25 * roi_sd
+                    + 0.010 * math.log1p(stats["bets"])
+                    + 0.02 * profitable_share
                 )
                 stable = (
                     season_count >= min(2, len(seasons))
                     and stats["roi"] > 0
-                    and profitable_share >= 0.50
+                    and recent_roi > 0
+                    and latest_roi is not None
+                    and latest_roi > 0
+                    and profitable_share >= 0.60
                 )
 
                 candidates.append({
@@ -337,6 +381,8 @@ def select_strategy(rows: pd.DataFrame, kind: str) -> dict:
                         profitable_share, 4
                     ),
                     "roi_sd": round(roi_sd, 4),
+                    "recent_roi": round(float(recent_roi), 4),
+                    "latest_season_roi": round(float(latest_roi), 4),
                     "robust_score": round(robust_score, 6),
                     "stable": bool(stable),
                     "by_season": by_season,
@@ -397,6 +443,7 @@ def generate_oof_predictions(
         model = MarketClassifier().fit(
             engineered_features(train, base_features),
             train["market_target"],
+            sample_weight=training_weights(train),
         )
         probability = model.predict_proba(
             engineered_features(valid, base_features)
@@ -510,6 +557,7 @@ def walk_forward_strategy_validation(
             model = MarketClassifier().fit(
                 engineered_features(train, base_features),
                 train["market_target"],
+                sample_weight=training_weights(train),
             )
             raw_probability = model.predict_proba(
                 engineered_features(test, base_features)
@@ -632,6 +680,7 @@ def fit_final_market_model(
     return MarketClassifier().fit(
         engineered_features(rows, base_features),
         rows["market_target"],
+        sample_weight=training_weights(rows),
     )
 
 

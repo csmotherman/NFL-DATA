@@ -961,7 +961,7 @@ def build_candidates(
         statuses = []
 
         spread_status = str(r.get("spread_status", "NO BET")).upper()
-        if spread_status in {"WATCH", "VALIDATED"}:
+        if spread_status in {"WATCH", "CAUTION", "VALIDATED"}:
             statuses.append(spread_status)
             reasons.append(
                 f"{spread_status} SPREAD: {r.get('spread_pick', '')} | "
@@ -971,7 +971,7 @@ def build_candidates(
             )
 
         total_status = str(r.get("total_status", "NO BET")).upper()
-        if total_status in {"WATCH", "VALIDATED"}:
+        if total_status in {"WATCH", "CAUTION", "VALIDATED"}:
             statuses.append(total_status)
             reasons.append(
                 f"{total_status} TOTAL: {r.get('total_pick', '')} | "
@@ -984,7 +984,8 @@ def build_candidates(
             continue
 
         promotion_status = (
-            "VALIDATED" if "VALIDATED" in statuses else "WATCH"
+            "VALIDATED" if "VALIDATED" in statuses
+            else ("CAUTION" if "CAUTION" in statuses else "WATCH")
         )
 
         rows.append({

@@ -104,7 +104,11 @@ def format_team_spread(row: pd.Series, team: str) -> float:
     line = row.get("spread_line", np.nan)
     if pd.isna(line):
         return np.nan
-    return -float(line) if team == row.get("home_team") else float(line)
+    if team == row.get("home_team"):
+        return -float(line)
+    if team == row.get("away_team"):
+        return float(line)
+    return np.nan
 
 
 def status_for_edge(
@@ -182,15 +186,7 @@ def enrich_board(
             board["away_team"],
         )
     else:
-        fallback_spread_pick = np.where(
-            numeric(board["spread_edge"]) >= 0,
-            board["home_team"],
-            board["away_team"],
-        )
-        board["spread_pick"] = board["spread_pick"].where(
-            board["spread_pick"].astype(str).str.len().gt(0),
-            fallback_spread_pick,
-        )
+        board["spread_pick"] = board["spread_pick"].fillna("")
 
     board["spread_pick_line"] = board.apply(
         lambda row: format_team_spread(row, row["spread_pick"]),
@@ -211,15 +207,7 @@ def enrich_board(
             "UNDER",
         )
     else:
-        fallback_total_pick = np.where(
-            numeric(board["total_edge"]) >= 0,
-            "OVER",
-            "UNDER",
-        )
-        board["total_pick"] = board["total_pick"].where(
-            board["total_pick"].astype(str).str.len().gt(0),
-            fallback_total_pick,
-        )
+        board["total_pick"] = board["total_pick"].fillna("")
 
     if "total_status" not in board.columns:
         board["total_status"] = board["total_edge"].apply(
@@ -234,15 +222,27 @@ def enrich_board(
         board.get("home_moneyline", np.nan),
         board.get("away_moneyline", np.nan),
     )
-    board["spread_odds"] = np.where(
-        board["spread_pick"].eq(board["home_team"]),
-        board.get("home_spread_odds", np.nan),
-        board.get("away_spread_odds", np.nan),
+    board["spread_odds"] = np.select(
+        [
+            board["spread_pick"].eq(board["home_team"]),
+            board["spread_pick"].eq(board["away_team"]),
+        ],
+        [
+            board.get("home_spread_odds", np.nan),
+            board.get("away_spread_odds", np.nan),
+        ],
+        default=np.nan,
     )
-    board["total_odds"] = np.where(
-        board["total_pick"].eq("OVER"),
-        board.get("over_odds", np.nan),
-        board.get("under_odds", np.nan),
+    board["total_odds"] = np.select(
+        [
+            board["total_pick"].eq("OVER"),
+            board["total_pick"].eq("UNDER"),
+        ],
+        [
+            board.get("over_odds", np.nan),
+            board.get("under_odds", np.nan),
+        ],
+        default=np.nan,
     )
 
     board["model_home_score"] = (

@@ -949,6 +949,7 @@ def walk_forward_strategy_validation(
         current_rows = current_rows[
             current_rows["season"].eq(current_season)
         ].copy()
+        shadow_eval = None
         current_shadow = {
             "season": int(current_season),
             "games": int(len(current_rows)),
@@ -1034,7 +1035,7 @@ def walk_forward_strategy_validation(
         if (
             production_mode == "CAUTION"
             and len(current_rows)
-            and "shadow_eval" in locals()
+            and shadow_eval is not None
         ):
             caution_shadow = evaluate_strategy(
                 shadow_eval,
@@ -1086,10 +1087,9 @@ def walk_forward_strategy_validation(
                 full_oof, kind
             ),
             "validated_threshold": (
-                frozen_confirmation.get("frozen_strategy", {}).get("threshold")
+                production_strategy.get("threshold")
                 if production_enabled
-                and frozen_confirmation.get("frozen_strategy", {}).get("side_mode")
-                != "none"
+                and production_strategy.get("side_mode") != "none"
                 else None
             ),
         }

@@ -593,7 +593,7 @@
     }
 
     return '<div class="table-scroll"><table class="data-table">' +
-      '<thead><tr><th>Week</th><th>Game</th><th>Final</th><th>Spread Bet</th><th>Spread Result</th><th>Total Bet</th><th>Total Result</th><th>ML Bet</th><th>ML Result</th></tr></thead>' +
+      '<thead><tr><th>Week</th><th>Game</th><th>Final</th><th>Spread Bet</th><th>Spread Result</th><th>Total Bet</th><th>Total Result</th></tr></thead>' +
       '<tbody>' +
       rows.map((row) => {
         return '<tr>' +
@@ -604,8 +604,6 @@
           '<td>' + statusText(row.spread_result) + '</td>' +
           '<td class="number">' + esc(totalBetText(row)) + '</td>' +
           '<td>' + statusText(row.total_result) + '</td>' +
-          '<td class="number">' + esc((row.moneyline_pick || '—') + ' ' + odds(row.moneyline_price)) + '</td>' +
-          '<td>' + statusText(row.moneyline_result) + '</td>' +
           '</tr>';
       }).join('') +
       '</tbody></table></div>';

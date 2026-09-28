@@ -325,14 +325,8 @@
     return ' result-push';
   }
 
-  function renderCompleted() {
-    const rows = state.board
-      .filter(isFinal)
-      .sort((a, b) => String(b.gameday).localeCompare(String(a.gameday)));
-
-    $('completedSection').hidden = rows.length === 0;
-
-    $('completedBody').innerHTML = rows.map((row) => {
+  function completedRowsHtml(rows) {
+    return rows.map((row) => {
       const spreadGrade = spreadResult(row);
       const totalGrade = totalResult(row);
       const moneylineGrade = moneylineResult(row);
@@ -348,6 +342,19 @@
         '<td class="number' + resultClass(moneylineGrade) + '">' + esc((row.moneyline_pick || '—') + ' ' + odds(row.moneyline_price)) + '</td>' +
         '</tr>';
     }).join('');
+  }
+
+  function renderCompleted() {
+    const rows = state.board
+      .filter(isFinal)
+      .sort((a, b) => String(b.gameday).localeCompare(String(a.gameday)));
+
+    const html = completedRowsHtml(rows);
+
+    $('completedSection').hidden = rows.length === 0;
+    $('historyCompletedSection').hidden = rows.length === 0;
+    $('completedBody').innerHTML = html;
+    $('historyCompletedBody').innerHTML = html;
   }
 
   function propMarkets() {

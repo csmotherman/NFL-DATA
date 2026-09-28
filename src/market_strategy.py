@@ -13,9 +13,12 @@ from sklearn.preprocessing import StandardScaler
 
 DEFAULT_PRICE = -110.0
 OUTER_SEASONS = [2022, 2023, 2024, 2025]
-EDGE_THRESHOLDS = [0.00, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.08, 0.10, 0.12]
+EDGE_THRESHOLDS = [0.00, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.08, 0.10, 0.12, 0.15, 0.18, 0.20]
 SIDE_MODES = ["both", "positive", "negative"]
-ORIENTATIONS = ["normal", "reverse"]
+# Reverse orientation remains useful as a diagnostic, but allowing production
+# to flip the meaning of the classifier is too easy to data-mine. A bet must
+# agree with the trained probability direction.
+ORIENTATIONS = ["normal"]
 
 
 def numeric(values):
@@ -284,6 +287,86 @@ def annotate_probabilities(
     return out
 
 
+def strategy_segments(kind: str) -> list[str]:
+    if kind == "spread":
+        return [
+            "all",
+            "favorite",
+            "underdog",
+            "short_line",
+            "medium_line",
+            "large_line",
+            "division",
+        ]
+    return [
+        "all",
+        "low_total",
+        "mid_total",
+        "high_total",
+        "outdoors",
+        "indoors",
+        "primetime",
+    ]
+
+
+def segment_mask(rows: pd.DataFrame, kind: str, segment: str) -> pd.Series:
+    mask = pd.Series(True, index=rows.index, dtype=bool)
+    if segment == "all":
+        return mask
+
+    if kind == "spread":
+        spread = numeric(rows["spread_line"])
+        side = numeric(rows["market_side"])
+        favorite_side = np.sign(spread).replace(0, np.nan)
+
+        if segment == "favorite":
+            return side.eq(favorite_side)
+        if segment == "underdog":
+            return side.eq(-favorite_side)
+        if segment == "short_line":
+            return spread.abs().le(3.5)
+        if segment == "medium_line":
+            return spread.abs().gt(3.5) & spread.abs().le(7.5)
+        if segment == "large_line":
+            return spread.abs().gt(7.5)
+        if segment == "division":
+            return numeric(rows.get("div_game", np.nan)).eq(1)
+
+    total = numeric(rows["total_line"])
+    if segment == "low_total":
+        return total.le(42.5)
+    if segment == "mid_total":
+        return total.gt(42.5) & total.lt(48.0)
+    if segment == "high_total":
+        return total.ge(48.0)
+
+    roof = rows.get(
+        "roof", pd.Series("", index=rows.index)
+    ).astype(str).str.lower()
+    if segment == "indoors":
+        return roof.isin(["dome", "closed"])
+    if segment == "outdoors":
+        return ~roof.isin(["dome", "closed"])
+
+    if segment == "primetime":
+        weekday = rows.get(
+            "weekday", pd.Series("", index=rows.index)
+        ).astype(str).str.lower()
+        gametime = rows.get(
+            "gametime", pd.Series("", index=rows.index)
+        ).astype(str)
+        hour = pd.to_numeric(
+            gametime.str.slice(0, 2), errors="coerce"
+        )
+        return (
+            weekday.str.startswith("thurs")
+            | weekday.str.startswith("mon")
+            | hour.ge(19)
+        )
+
+    return mask
+
+
 def evaluate_strategy(
     rows: pd.DataFrame,
     kind: str,
@@ -301,8 +384,10 @@ def evaluate_strategy(
 
     threshold = float(strategy["threshold"])
     side_mode = strategy["side_mode"]
+    segment = strategy.get("segment", "all")
 
     mask = numeric(rows["market_probability_edge"]).ge(threshold)
+    mask &= segment_mask(rows, kind, segment)
     if side_mode == "positive":
         mask &= numeric(rows["market_side"]).eq(1)
     elif side_mode == "negative":
@@ -373,6 +458,7 @@ def select_strategy(rows: pd.DataFrame, kind: str) -> dict:
         return {
             "side_mode": "none",
             "orientation": "normal",
+            "segment": "all",
             "threshold": 1.0,
             "stable": False,
             "reason": "No prior out-of-sample rows.",
@@ -392,85 +478,87 @@ def select_strategy(rows: pd.DataFrame, kind: str) -> dict:
             orientation=orientation,
         )
 
-        for side_mode in SIDE_MODES:
-            for threshold in EDGE_THRESHOLDS:
-                strategy = {
-                    "orientation": orientation,
-                    "side_mode": side_mode,
-                    "threshold": float(threshold),
-                }
-                stats = evaluate_strategy(oriented, kind, strategy)
-                if stats["bets"] < min_bets or stats["roi"] is None:
-                    continue
+        for segment in strategy_segments(kind):
+            for side_mode in SIDE_MODES:
+                for threshold in EDGE_THRESHOLDS:
+                    strategy = {
+                        "orientation": orientation,
+                        "side_mode": side_mode,
+                        "segment": segment,
+                        "threshold": float(threshold),
+                    }
+                    stats = evaluate_strategy(oriented, kind, strategy)
+                    if stats["bets"] < min_bets or stats["roi"] is None:
+                        continue
 
-                by_season = season_breakdown(
-                    oriented, kind, strategy
-                )
+                    by_season = season_breakdown(
+                        oriented, kind, strategy
+                    )
                 profitable = sum(
-                    1 for row in by_season
-                    if row["roi"] is not None and row["roi"] > 0
-                )
-                season_count = len(by_season)
-                season_rois = [
-                    row["roi"] for row in by_season
-                    if row["roi"] is not None
-                ]
-                roi_sd = (
-                    float(np.std(season_rois))
-                    if season_rois else 1.0
-                )
-                profitable_share = (
-                    profitable / season_count
-                    if season_count else 0.0
-                )
+                        1 for row in by_season
+                        if row["roi"] is not None and row["roi"] > 0
+                    )
+                    season_count = len(by_season)
+                    season_rois = [
+                        row["roi"] for row in by_season
+                        if row["roi"] is not None
+                    ]
+                    roi_sd = (
+                        float(np.std(season_rois))
+                        if season_rois else 1.0
+                    )
+                    profitable_share = (
+                        profitable / season_count
+                        if season_count else 0.0
+                    )
 
-                recent_rows = by_season[-2:]
-                recent_bets = sum(
-                    row["bets"] for row in recent_rows
-                )
-                recent_profit = sum(
-                    row["profit_units"] for row in recent_rows
-                )
-                recent_roi = (
-                    recent_profit / recent_bets
-                    if recent_bets else -1.0
-                )
-                latest_roi = (
-                    by_season[-1]["roi"]
-                    if by_season else -1.0
-                )
+                    recent_rows = by_season[-2:]
+                    recent_bets = sum(
+                        row["bets"] for row in recent_rows
+                    )
+                    recent_profit = sum(
+                        row["profit_units"] for row in recent_rows
+                    )
+                    recent_roi = (
+                        recent_profit / recent_bets
+                        if recent_bets else -1.0
+                    )
+                    latest_roi = (
+                        by_season[-1]["roi"]
+                        if by_season else -1.0
+                    )
 
-                robust_score = (
-                    0.55 * float(stats["roi"])
-                    + 0.45 * recent_roi
-                    - 0.25 * roi_sd
-                    + 0.010 * math.log1p(stats["bets"])
-                    + 0.02 * profitable_share
-                )
-                stable = (
-                    season_count >= min(2, len(seasons))
-                    and stats["roi"] > 0
-                    and recent_roi > 0
-                    and latest_roi is not None
-                    and latest_roi > 0
-                    and profitable_share >= 0.60
-                )
+                    robust_score = (
+                        0.55 * float(stats["roi"])
+                        + 0.45 * recent_roi
+                        - 0.25 * roi_sd
+                        + 0.010 * math.log1p(stats["bets"])
+                        + 0.02 * profitable_share
+                    )
+                    stable = (
+                        season_count >= min(2, len(seasons))
+                        and stats["roi"] > 0
+                        and recent_roi > 0
+                        and latest_roi is not None
+                        and latest_roi > 0
+                        and profitable_share >= 0.60
+                    )
 
-                candidates.append({
-                    **strategy,
-                    **stats,
-                    "seasons_with_bets": season_count,
-                    "profitable_seasons": profitable,
-                    "profitable_season_share": round(
-                        profitable_share, 4
-                    ),
-                    "roi_sd": round(roi_sd, 4),
-                    "recent_roi": round(float(recent_roi), 4),
-                    "latest_season_roi": round(float(latest_roi), 4),
-                    "robust_score": round(robust_score, 6),
-                    "stable": bool(stable),
-                    "by_season": by_season,
-                })
+                    candidates.append({
+                        **strategy,
+                        **stats,
+                        "seasons_with_bets": season_count,
+                        "profitable_seasons": profitable,
+                        "profitable_season_share": round(
+                            profitable_share, 4
+                        ),
+                        "roi_sd": round(roi_sd, 4),
+                        "recent_roi": round(float(recent_roi), 4),
+                        "latest_season_roi": round(float(latest_roi), 4),
+                        "robust_score": round(robust_score, 6),
+                        "stable": bool(stable),
+                        "by_season": by_season,
+                    })
 
     stable_candidates = [
         candidate for candidate in candidates
@@ -480,6 +568,7 @@ def select_strategy(rows: pd.DataFrame, kind: str) -> dict:
         return {
             "orientation": "normal",
             "side_mode": "none",
+            "segment": "all",
             "threshold": 1.0,
             "stable": False,
             "reason": (
@@ -687,6 +776,49 @@ def walk_forward_strategy_validation(
             full_oof, kind
         )
 
+        # Current-season shadow holdout: strategy is frozen using only prior
+        # seasons, then tested on completed games from the current season.
+        current_rows = market_rows(dataset, kind)
+        current_rows = current_rows[
+            current_rows["season"].eq(current_season)
+        ].copy()
+        current_shadow = {
+            "season": int(current_season),
+            "games": int(len(current_rows)),
+            "bets": 0,
+            "wins": 0,
+            "losses": 0,
+            "win_rate": None,
+            "roi": None,
+            "profit_units": 0.0,
+        }
+        if len(current_rows) and final_strategy.get("side_mode") != "none":
+            historical_rows = market_rows(dataset, kind)
+            historical_rows = historical_rows[
+                historical_rows["season"] < current_season
+            ].copy()
+            shadow_model = MarketClassifier().fit(
+                engineered_features(historical_rows, base_features),
+                historical_rows["market_target"],
+                sample_weight=training_weights(historical_rows),
+            )
+            shadow_probability = shadow_model.predict_proba(
+                engineered_features(current_rows, base_features)
+            )
+            shadow_eval = current_rows.copy()
+            shadow_eval["raw_probability_positive"] = shadow_probability
+            shadow_eval = annotate_probabilities(
+                shadow_eval,
+                shadow_probability,
+                kind,
+                orientation=final_strategy.get("orientation", "normal"),
+            )
+            current_shadow.update(
+                evaluate_strategy(
+                    shadow_eval, kind, final_strategy
+                )
+            )
+
         strategy_validated = (
             total_bets >= 100
             and roi is not None
@@ -724,6 +856,7 @@ def walk_forward_strategy_validation(
             "strategy_validated": bool(
                 strategy_validated
             ),
+            "current_season_shadow": current_shadow,
             "final_strategy": final_strategy,
             "thresholds": fixed_threshold_diagnostics(
                 full_oof, kind

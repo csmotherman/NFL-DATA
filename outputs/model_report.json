@@ -674,15 +674,203 @@
       "seasons_with_bets": 8,
       "profitable_seasons": 5,
       "strategy_validated": true,
+      "nested_strategy_validated": true,
+      "frozen_confirmation": {
+        "discovery_through": 2021,
+        "confirmation_from": 2022,
+        "frozen_strategy": {
+          "orientation": "normal",
+          "side_mode": "negative",
+          "segment": "short_line",
+          "threshold": 0.02,
+          "bets": 263,
+          "wins": 149,
+          "losses": 114,
+          "win_rate": 0.5665,
+          "roi": 0.1111,
+          "profit_units": 29.212,
+          "seasons_with_bets": 5,
+          "profitable_seasons": 5,
+          "profitable_season_share": 1.0,
+          "roi_sd": 0.0637,
+          "recent_roi": 0.1512,
+          "latest_season_roi": 0.1756,
+          "robust_score": 0.189003,
+          "stable": true,
+          "by_season": [
+            {
+              "season": 2017,
+              "bets": 46,
+              "wins": 24,
+              "losses": 22,
+              "win_rate": 0.5217,
+              "roi": 0.0302,
+              "profit_units": 1.389
+            },
+            {
+              "season": 2018,
+              "bets": 51,
+              "wins": 27,
+              "losses": 24,
+              "win_rate": 0.5294,
+              "roi": 0.0368,
+              "profit_units": 1.875
+            },
+            {
+              "season": 2019,
+              "bets": 42,
+              "wins": 25,
+              "losses": 17,
+              "win_rate": 0.5952,
+              "roi": 0.1713,
+              "profit_units": 7.196
+            },
+            {
+              "season": 2020,
+              "bets": 69,
+              "wins": 40,
+              "losses": 29,
+              "win_rate": 0.5797,
+              "roi": 0.1318,
+              "profit_units": 9.095
+            },
+            {
+              "season": 2021,
+              "bets": 55,
+              "wins": 33,
+              "losses": 22,
+              "win_rate": 0.6,
+              "roi": 0.1756,
+              "profit_units": 9.657
+            }
+          ],
+          "candidates_tested": 190
+        },
+        "bets": 182,
+        "wins": 99,
+        "losses": 83,
+        "win_rate": 0.544,
+        "roi": 0.0519,
+        "profit_units": 9.438,
+        "seasons_with_bets": 4,
+        "profitable_seasons": 3,
+        "by_season": [
+          {
+            "season": 2022,
+            "bets": 71,
+            "wins": 38,
+            "losses": 33,
+            "win_rate": 0.5352,
+            "roi": 0.0547,
+            "profit_units": 3.887
+          },
+          {
+            "season": 2023,
+            "bets": 28,
+            "wins": 14,
+            "losses": 14,
+            "win_rate": 0.5,
+            "roi": -0.0495,
+            "profit_units": -1.387
+          },
+          {
+            "season": 2024,
+            "bets": 44,
+            "wins": 24,
+            "losses": 20,
+            "win_rate": 0.5455,
+            "roi": 0.0361,
+            "profit_units": 1.59
+          },
+          {
+            "season": 2025,
+            "bets": 39,
+            "wins": 23,
+            "losses": 16,
+            "win_rate": 0.5897,
+            "roi": 0.1371,
+            "profit_units": 5.348
+          }
+        ],
+        "passed": true
+      },
+      "production_strategy": {
+        "orientation": "normal",
+        "side_mode": "negative",
+        "segment": "short_line",
+        "threshold": 0.02,
+        "bets": 263,
+        "wins": 149,
+        "losses": 114,
+        "win_rate": 0.5665,
+        "roi": 0.1111,
+        "profit_units": 29.212,
+        "seasons_with_bets": 5,
+        "profitable_seasons": 5,
+        "profitable_season_share": 1.0,
+        "roi_sd": 0.0637,
+        "recent_roi": 0.1512,
+        "latest_season_roi": 0.1756,
+        "robust_score": 0.189003,
+        "stable": true,
+        "by_season": [
+          {
+            "season": 2017,
+            "bets": 46,
+            "wins": 24,
+            "losses": 22,
+            "win_rate": 0.5217,
+            "roi": 0.0302,
+            "profit_units": 1.389
+          },
+          {
+            "season": 2018,
+            "bets": 51,
+            "wins": 27,
+            "losses": 24,
+            "win_rate": 0.5294,
+            "roi": 0.0368,
+            "profit_units": 1.875
+          },
+          {
+            "season": 2019,
+            "bets": 42,
+            "wins": 25,
+            "losses": 17,
+            "win_rate": 0.5952,
+            "roi": 0.1713,
+            "profit_units": 7.196
+          },
+          {
+            "season": 2020,
+            "bets": 69,
+            "wins": 40,
+            "losses": 29,
+            "win_rate": 0.5797,
+            "roi": 0.1318,
+            "profit_units": 9.095
+          },
+          {
+            "season": 2021,
+            "bets": 55,
+            "wins": 33,
+            "losses": 22,
+            "win_rate": 0.6,
+            "roi": 0.1756,
+            "profit_units": 9.657
+          }
+        ],
+        "candidates_tested": 190
+      },
       "current_season_shadow": {
         "season": 2026,
         "games": 44,
-        "bets": 5,
-        "wins": 2,
-        "losses": 3,
-        "win_rate": 0.4,
-        "roi": -0.2548,
-        "profit_units": -1.274
+        "bets": 11,
+        "wins": 3,
+        "losses": 8,
+        "win_rate": 0.2727,
+        "roi": -0.4838,
+        "profit_units": -5.321
       },
       "final_strategy": {
         "orientation": "normal",
@@ -2025,7 +2213,7 @@
           ]
         }
       },
-      "validated_threshold": 0.08
+      "validated_threshold": 0.02
     },
     "total": {
       "status": "ok",
@@ -2622,15 +2810,142 @@
       "seasons_with_bets": 8,
       "profitable_seasons": 3,
       "strategy_validated": false,
+      "nested_strategy_validated": false,
+      "frozen_confirmation": {
+        "discovery_through": 2021,
+        "confirmation_from": 2022,
+        "frozen_strategy": {
+          "orientation": "normal",
+          "side_mode": "positive",
+          "segment": "indoors",
+          "threshold": 0.04,
+          "bets": 97,
+          "wins": 64,
+          "losses": 33,
+          "win_rate": 0.6598,
+          "roi": 0.2874,
+          "profit_units": 27.878,
+          "seasons_with_bets": 5,
+          "profitable_seasons": 4,
+          "profitable_season_share": 0.8,
+          "roi_sd": 0.349,
+          "recent_roi": 0.6434,
+          "latest_season_roi": 0.5396,
+          "robust_score": 0.422203,
+          "stable": true,
+          "by_season": [
+            {
+              "season": 2017,
+              "bets": 22,
+              "wins": 8,
+              "losses": 14,
+              "win_rate": 0.3636,
+              "roi": -0.2909,
+              "profit_units": -6.399
+            },
+            {
+              "season": 2018,
+              "bets": 20,
+              "wins": 13,
+              "losses": 7,
+              "win_rate": 0.65,
+              "roi": 0.271,
+              "profit_units": 5.42
+            },
+            {
+              "season": 2019,
+              "bets": 17,
+              "wins": 11,
+              "losses": 6,
+              "win_rate": 0.6471,
+              "roi": 0.2593,
+              "profit_units": 4.409
+            },
+            {
+              "season": 2020,
+              "bets": 19,
+              "wins": 17,
+              "losses": 2,
+              "win_rate": 0.8947,
+              "roi": 0.7472,
+              "profit_units": 14.196
+            },
+            {
+              "season": 2021,
+              "bets": 19,
+              "wins": 15,
+              "losses": 4,
+              "win_rate": 0.7895,
+              "roi": 0.5396,
+              "profit_units": 10.253
+            }
+          ],
+          "candidates_tested": 185
+        },
+        "bets": 101,
+        "wins": 48,
+        "losses": 53,
+        "win_rate": 0.4752,
+        "roi": -0.087,
+        "profit_units": -8.783,
+        "seasons_with_bets": 4,
+        "profitable_seasons": 1,
+        "by_season": [
+          {
+            "season": 2022,
+            "bets": 36,
+            "wins": 17,
+            "losses": 19,
+            "win_rate": 0.4722,
+            "roi": -0.0799,
+            "profit_units": -2.876
+          },
+          {
+            "season": 2023,
+            "bets": 20,
+            "wins": 8,
+            "losses": 12,
+            "win_rate": 0.4,
+            "roi": -0.2363,
+            "profit_units": -4.726
+          },
+          {
+            "season": 2024,
+            "bets": 15,
+            "wins": 7,
+            "losses": 8,
+            "win_rate": 0.4667,
+            "roi": -0.1112,
+            "profit_units": -1.668
+          },
+          {
+            "season": 2025,
+            "bets": 30,
+            "wins": 16,
+            "losses": 14,
+            "win_rate": 0.5333,
+            "roi": 0.0163,
+            "profit_units": 0.488
+          }
+        ],
+        "passed": false
+      },
+      "production_strategy": {
+        "orientation": "normal",
+        "side_mode": "none",
+        "segment": "all",
+        "threshold": 1.0,
+        "reason": "Frozen confirmation did not pass."
+      },
       "current_season_shadow": {
         "season": 2026,
         "games": 47,
-        "bets": 1,
-        "wins": 1,
+        "bets": 0,
+        "wins": 0,
         "losses": 0,
-        "win_rate": 1.0,
-        "roi": 0.9524,
-        "profit_units": 0.952
+        "win_rate": null,
+        "roi": null,
+        "profit_units": 0.0
       },
       "final_strategy": {
         "orientation": "normal",
@@ -4572,15 +4887,203 @@
       "seasons_with_bets": 8,
       "profitable_seasons": 5,
       "strategy_validated": true,
+      "nested_strategy_validated": true,
+      "frozen_confirmation": {
+        "discovery_through": 2021,
+        "confirmation_from": 2022,
+        "frozen_strategy": {
+          "orientation": "normal",
+          "side_mode": "negative",
+          "segment": "short_line",
+          "threshold": 0.02,
+          "bets": 263,
+          "wins": 149,
+          "losses": 114,
+          "win_rate": 0.5665,
+          "roi": 0.1111,
+          "profit_units": 29.212,
+          "seasons_with_bets": 5,
+          "profitable_seasons": 5,
+          "profitable_season_share": 1.0,
+          "roi_sd": 0.0637,
+          "recent_roi": 0.1512,
+          "latest_season_roi": 0.1756,
+          "robust_score": 0.189003,
+          "stable": true,
+          "by_season": [
+            {
+              "season": 2017,
+              "bets": 46,
+              "wins": 24,
+              "losses": 22,
+              "win_rate": 0.5217,
+              "roi": 0.0302,
+              "profit_units": 1.389
+            },
+            {
+              "season": 2018,
+              "bets": 51,
+              "wins": 27,
+              "losses": 24,
+              "win_rate": 0.5294,
+              "roi": 0.0368,
+              "profit_units": 1.875
+            },
+            {
+              "season": 2019,
+              "bets": 42,
+              "wins": 25,
+              "losses": 17,
+              "win_rate": 0.5952,
+              "roi": 0.1713,
+              "profit_units": 7.196
+            },
+            {
+              "season": 2020,
+              "bets": 69,
+              "wins": 40,
+              "losses": 29,
+              "win_rate": 0.5797,
+              "roi": 0.1318,
+              "profit_units": 9.095
+            },
+            {
+              "season": 2021,
+              "bets": 55,
+              "wins": 33,
+              "losses": 22,
+              "win_rate": 0.6,
+              "roi": 0.1756,
+              "profit_units": 9.657
+            }
+          ],
+          "candidates_tested": 190
+        },
+        "bets": 182,
+        "wins": 99,
+        "losses": 83,
+        "win_rate": 0.544,
+        "roi": 0.0519,
+        "profit_units": 9.438,
+        "seasons_with_bets": 4,
+        "profitable_seasons": 3,
+        "by_season": [
+          {
+            "season": 2022,
+            "bets": 71,
+            "wins": 38,
+            "losses": 33,
+            "win_rate": 0.5352,
+            "roi": 0.0547,
+            "profit_units": 3.887
+          },
+          {
+            "season": 2023,
+            "bets": 28,
+            "wins": 14,
+            "losses": 14,
+            "win_rate": 0.5,
+            "roi": -0.0495,
+            "profit_units": -1.387
+          },
+          {
+            "season": 2024,
+            "bets": 44,
+            "wins": 24,
+            "losses": 20,
+            "win_rate": 0.5455,
+            "roi": 0.0361,
+            "profit_units": 1.59
+          },
+          {
+            "season": 2025,
+            "bets": 39,
+            "wins": 23,
+            "losses": 16,
+            "win_rate": 0.5897,
+            "roi": 0.1371,
+            "profit_units": 5.348
+          }
+        ],
+        "passed": true
+      },
+      "production_strategy": {
+        "orientation": "normal",
+        "side_mode": "negative",
+        "segment": "short_line",
+        "threshold": 0.02,
+        "bets": 263,
+        "wins": 149,
+        "losses": 114,
+        "win_rate": 0.5665,
+        "roi": 0.1111,
+        "profit_units": 29.212,
+        "seasons_with_bets": 5,
+        "profitable_seasons": 5,
+        "profitable_season_share": 1.0,
+        "roi_sd": 0.0637,
+        "recent_roi": 0.1512,
+        "latest_season_roi": 0.1756,
+        "robust_score": 0.189003,
+        "stable": true,
+        "by_season": [
+          {
+            "season": 2017,
+            "bets": 46,
+            "wins": 24,
+            "losses": 22,
+            "win_rate": 0.5217,
+            "roi": 0.0302,
+            "profit_units": 1.389
+          },
+          {
+            "season": 2018,
+            "bets": 51,
+            "wins": 27,
+            "losses": 24,
+            "win_rate": 0.5294,
+            "roi": 0.0368,
+            "profit_units": 1.875
+          },
+          {
+            "season": 2019,
+            "bets": 42,
+            "wins": 25,
+            "losses": 17,
+            "win_rate": 0.5952,
+            "roi": 0.1713,
+            "profit_units": 7.196
+          },
+          {
+            "season": 2020,
+            "bets": 69,
+            "wins": 40,
+            "losses": 29,
+            "win_rate": 0.5797,
+            "roi": 0.1318,
+            "profit_units": 9.095
+          },
+          {
+            "season": 2021,
+            "bets": 55,
+            "wins": 33,
+            "losses": 22,
+            "win_rate": 0.6,
+            "roi": 0.1756,
+            "profit_units": 9.657
+          }
+        ],
+        "candidates_tested": 190
+      },
       "current_season_shadow": {
         "season": 2026,
         "games": 44,
-        "bets": 5,
-        "wins": 2,
-        "losses": 3,
-        "win_rate": 0.4,
-        "roi": -0.2548,
-        "profit_units": -1.274
+        "bets": 11,
+        "wins": 3,
+        "losses": 8,
+        "win_rate": 0.2727,
+        "roi": -0.4838,
+        "profit_units": -5.321
       },
       "final_strategy": {
         "orientation": "normal",
@@ -5923,7 +6426,7 @@
           ]
         }
       },
-      "validated_threshold": 0.08
+      "validated_threshold": 0.02
     },
     "total": {
       "status": "ok",
@@ -6520,15 +7023,142 @@
       "seasons_with_bets": 8,
       "profitable_seasons": 3,
       "strategy_validated": false,
+      "nested_strategy_validated": false,
+      "frozen_confirmation": {
+        "discovery_through": 2021,
+        "confirmation_from": 2022,
+        "frozen_strategy": {
+          "orientation": "normal",
+          "side_mode": "positive",
+          "segment": "indoors",
+          "threshold": 0.04,
+          "bets": 97,
+          "wins": 64,
+          "losses": 33,
+          "win_rate": 0.6598,
+          "roi": 0.2874,
+          "profit_units": 27.878,
+          "seasons_with_bets": 5,
+          "profitable_seasons": 4,
+          "profitable_season_share": 0.8,
+          "roi_sd": 0.349,
+          "recent_roi": 0.6434,
+          "latest_season_roi": 0.5396,
+          "robust_score": 0.422203,
+          "stable": true,
+          "by_season": [
+            {
+              "season": 2017,
+              "bets": 22,
+              "wins": 8,
+              "losses": 14,
+              "win_rate": 0.3636,
+              "roi": -0.2909,
+              "profit_units": -6.399
+            },
+            {
+              "season": 2018,
+              "bets": 20,
+              "wins": 13,
+              "losses": 7,
+              "win_rate": 0.65,
+              "roi": 0.271,
+              "profit_units": 5.42
+            },
+            {
+              "season": 2019,
+              "bets": 17,
+              "wins": 11,
+              "losses": 6,
+              "win_rate": 0.6471,
+              "roi": 0.2593,
+              "profit_units": 4.409
+            },
+            {
+              "season": 2020,
+              "bets": 19,
+              "wins": 17,
+              "losses": 2,
+              "win_rate": 0.8947,
+              "roi": 0.7472,
+              "profit_units": 14.196
+            },
+            {
+              "season": 2021,
+              "bets": 19,
+              "wins": 15,
+              "losses": 4,
+              "win_rate": 0.7895,
+              "roi": 0.5396,
+              "profit_units": 10.253
+            }
+          ],
+          "candidates_tested": 185
+        },
+        "bets": 101,
+        "wins": 48,
+        "losses": 53,
+        "win_rate": 0.4752,
+        "roi": -0.087,
+        "profit_units": -8.783,
+        "seasons_with_bets": 4,
+        "profitable_seasons": 1,
+        "by_season": [
+          {
+            "season": 2022,
+            "bets": 36,
+            "wins": 17,
+            "losses": 19,
+            "win_rate": 0.4722,
+            "roi": -0.0799,
+            "profit_units": -2.876
+          },
+          {
+            "season": 2023,
+            "bets": 20,
+            "wins": 8,
+            "losses": 12,
+            "win_rate": 0.4,
+            "roi": -0.2363,
+            "profit_units": -4.726
+          },
+          {
+            "season": 2024,
+            "bets": 15,
+            "wins": 7,
+            "losses": 8,
+            "win_rate": 0.4667,
+            "roi": -0.1112,
+            "profit_units": -1.668
+          },
+          {
+            "season": 2025,
+            "bets": 30,
+            "wins": 16,
+            "losses": 14,
+            "win_rate": 0.5333,
+            "roi": 0.0163,
+            "profit_units": 0.488
+          }
+        ],
+        "passed": false
+      },
+      "production_strategy": {
+        "orientation": "normal",
+        "side_mode": "none",
+        "segment": "all",
+        "threshold": 1.0,
+        "reason": "Frozen confirmation did not pass."
+      },
       "current_season_shadow": {
         "season": 2026,
         "games": 47,
-        "bets": 1,
-        "wins": 1,
+        "bets": 0,
+        "wins": 0,
         "losses": 0,
-        "win_rate": 1.0,
-        "roi": 0.9524,
-        "profit_units": 0.952
+        "win_rate": null,
+        "roi": null,
+        "profit_units": 0.0
       },
       "final_strategy": {
         "orientation": "normal",
@@ -7874,7 +8504,7 @@
       "validated_threshold": null
     }
   },
-  "generated_at_utc": "2026-09-28T17:45:09Z",
+  "generated_at_utc": "2026-09-28T18:17:45Z",
   "training_start_season": 2014,
   "current_season": 2026,
   "target_week": 3,
@@ -7883,7 +8513,7 @@
   "historical_training_games_final_fit": 2982,
   "spread_watch_threshold": 3.0,
   "total_watch_threshold": 3.0,
-  "validated_spread_threshold": 0.08,
+  "validated_spread_threshold": 0.02,
   "validated_total_threshold": null,
   "candidate_count": 3,
   "notes": [

@@ -4,9 +4,9 @@ import math
 
 import numpy as np
 import pandas as pd
-from sklearn.ensemble import HistGradientBoostingClassifier
+from sklearn.ensemble import HistGradientBoostingClassifier, HistGradientBoostingRegressor
 from sklearn.impute import SimpleImputer
-from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import LogisticRegression, RidgeCV
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
@@ -46,6 +46,39 @@ def break_even_probability(odds: float) -> float:
     if odds > 0:
         return 100.0 / (odds + 100.0)
     return 110.0 / 210.0
+
+
+class MarginRegressor:
+    """Mirror the independent margin model used for the displayed score forecast."""
+
+    def __init__(self):
+        self.ridge = Pipeline([
+            ("imputer", SimpleImputer(strategy="median")),
+            ("scale", StandardScaler()),
+            ("model", RidgeCV(alphas=np.logspace(-2, 3, 30))),
+        ])
+        self.hgb = Pipeline([
+            ("imputer", SimpleImputer(strategy="median")),
+            ("model", HistGradientBoostingRegressor(
+                learning_rate=0.04,
+                max_iter=300,
+                max_leaf_nodes=15,
+                min_samples_leaf=25,
+                l2_regularization=6.0,
+                random_state=42,
+            )),
+        ])
+
+    def fit(self, X: pd.DataFrame, y: pd.Series):
+        self.ridge.fit(X, y)
+        self.hgb.fit(X, y)
+        return self
+
+    def predict(self, X: pd.DataFrame) -> np.ndarray:
+        return (
+            0.45 * self.ridge.predict(X)
+            + 0.55 * self.hgb.predict(X)
+        )
 
 
 class MarketClassifier:
@@ -368,6 +401,31 @@ def segment_mask(rows: pd.DataFrame, kind: str, segment: str) -> pd.Series:
     return mask
 
 
+def spread_coherence_mask(rows: pd.DataFrame) -> pd.Series:
+    """
+    A spread wager must agree with the independent projected-margin model.
+
+    market_side:
+      +1 = home side covers
+      -1 = away side covers
+    """
+    if "independent_margin_prediction" in rows.columns:
+        prediction = numeric(rows["independent_margin_prediction"])
+    elif "independent_home_margin" in rows.columns:
+        prediction = numeric(rows["independent_home_margin"])
+    else:
+        return pd.Series(True, index=rows.index, dtype=bool)
+
+    line = numeric(rows["spread_line"])
+    side = numeric(rows["market_side"])
+    model_cover_delta = prediction - line
+
+    return (
+        (side.eq(1) & model_cover_delta.gt(0))
+        | (side.eq(-1) & model_cover_delta.lt(0))
+    )
+
+
 def evaluate_strategy(
     rows: pd.DataFrame,
     kind: str,
@@ -389,6 +447,8 @@ def evaluate_strategy(
 
     mask = numeric(rows["market_probability_edge"]).ge(threshold)
     mask &= segment_mask(rows, kind, segment)
+    if kind == "spread":
+        mask &= spread_coherence_mask(rows)
     if side_mode == "positive":
         mask &= numeric(rows["market_side"]).eq(1)
     elif side_mode == "negative":
@@ -638,6 +698,16 @@ def generate_oof_predictions(
 
         fold = valid.copy()
         fold["raw_probability_positive"] = probability
+
+        if kind == "spread":
+            margin_model = MarginRegressor().fit(
+                train[base_features],
+                train["target_margin"],
+            )
+            fold["independent_margin_prediction"] = margin_model.predict(
+                valid[base_features]
+            )
+
         outputs.append(fold)
 
     if not outputs:
@@ -1157,6 +1227,8 @@ def predict_current_market(
         kind,
         strategy.get("segment", "all"),
     )
+    if kind == "spread":
+        qualified &= spread_coherence_mask(annotated)
 
     if side_mode == "positive":
         qualified &= numeric(

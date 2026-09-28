@@ -514,13 +514,12 @@ def walk_forward_strategy_validation(
     current_season: int,
 ) -> dict:
     """
-    Nested rolling-origin validation.
+    Nested rolling-origin validation using one frozen OOF ledger per market.
 
-    For each outer test season:
-    1. build OOF predictions using only still-earlier seasons;
-    2. choose sign / side / threshold on those prior OOF rows;
-    3. fit on all seasons before the test season;
-    4. grade the chosen strategy on the untouched test season.
+    Every validation-season probability is produced by a model trained only on
+    earlier seasons. Strategy selection for an outer season then sees only OOF
+    rows from seasons before that outer season. This is equivalent to the
+    previous nested process but avoids repeatedly fitting the same folds.
     """
     output = {}
     available = {
@@ -530,44 +529,36 @@ def walk_forward_strategy_validation(
     }
 
     for kind in ["spread", "total"]:
-        rows = market_rows(dataset, kind)
+        full_oof = generate_oof_predictions(
+            dataset,
+            base_features,
+            kind,
+            max_season_exclusive=current_season,
+        )
         outer = []
 
         for test_season in OUTER_SEASONS:
             if test_season not in available:
                 continue
 
-            prior_oof = generate_oof_predictions(
-                dataset,
-                base_features,
-                kind,
-                max_season_exclusive=test_season,
-            )
-            strategy = select_strategy(prior_oof, kind)
+            prior_oof = full_oof[
+                full_oof["season"] < test_season
+            ].copy()
+            test_eval = full_oof[
+                full_oof["season"] == test_season
+            ].copy()
 
-            train = rows[rows["season"] < test_season].copy()
-            test = rows[rows["season"] == test_season].copy()
-            if (
-                len(train) < 500
-                or len(test) < 100
-                or train["market_target"].nunique() < 2
-            ):
+            if len(test_eval) < 80:
                 continue
 
-            model = MarketClassifier().fit(
-                engineered_features(train, base_features),
-                train["market_target"],
-                sample_weight=training_weights(train),
+            strategy = select_strategy(
+                prior_oof, kind
             )
-            raw_probability = model.predict_proba(
-                engineered_features(test, base_features)
-            )
-
-            test_eval = test.copy()
-            test_eval["raw_probability_positive"] = raw_probability
             test_eval = annotate_probabilities(
                 test_eval,
-                raw_probability,
+                test_eval[
+                    "raw_probability_positive"
+                ].to_numpy(dtype=float),
                 kind,
                 orientation=strategy.get(
                     "orientation", "normal"
@@ -608,14 +599,8 @@ def walk_forward_strategy_validation(
             1 for row in outer if row["bets"]
         )
 
-        final_oof = generate_oof_predictions(
-            dataset,
-            base_features,
-            kind,
-            max_season_exclusive=current_season,
-        )
         final_strategy = select_strategy(
-            final_oof, kind
+            full_oof, kind
         )
 
         strategy_validated = (
@@ -630,7 +615,7 @@ def walk_forward_strategy_validation(
         output[kind] = {
             "status": "ok",
             "method": "nested_walk_forward_classifier",
-            "oof_games": int(len(final_oof)),
+            "oof_games": int(len(full_oof)),
             "outer_seasons": outer,
             "bets": int(total_bets),
             "wins": int(total_wins),
@@ -657,7 +642,7 @@ def walk_forward_strategy_validation(
             ),
             "final_strategy": final_strategy,
             "thresholds": fixed_threshold_diagnostics(
-                final_oof, kind
+                full_oof, kind
             ),
             "validated_threshold": (
                 final_strategy.get("threshold")

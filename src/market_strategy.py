@@ -131,7 +131,7 @@ def odds_columns(kind: str) -> tuple[str, str]:
 def price_array(rows: pd.DataFrame, column: str) -> np.ndarray:
     if column not in rows.columns:
         return np.full(len(rows), DEFAULT_PRICE, dtype=float)
-    values = numeric(rows[column]).to_numpy(dtype=float)
+    values = numeric(rows[column]).to_numpy(dtype=float, copy=True)
     values[~np.isfinite(values)] = DEFAULT_PRICE
     return values
 

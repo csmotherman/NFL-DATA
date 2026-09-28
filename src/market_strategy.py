@@ -1045,6 +1045,17 @@ def walk_forward_strategy_validation(
             )
             shadow_eval = current_rows.copy()
             shadow_eval["raw_probability_positive"] = shadow_probability
+
+            if kind == "spread":
+                shadow_margin_model = MarginRegressor().fit(
+                    historical_rows[base_features],
+                    historical_rows["target_margin"],
+                )
+                shadow_eval["independent_margin_prediction"] = (
+                    shadow_margin_model.predict(
+                        current_rows[base_features]
+                    )
+                )
             shadow_eval = annotate_probabilities(
                 shadow_eval,
                 shadow_probability,

@@ -1162,19 +1162,26 @@ def predict_current_market(
     ).fillna(0).astype(int)
 
     if kind == "spread":
-        pick = np.where(
+        candidate_side = np.where(
             side.eq(1),
             annotated["home_team"],
             annotated["away_team"],
         )
         prefix = "spread"
     else:
-        pick = np.where(
+        candidate_side = np.where(
             side.eq(1), "OVER", "UNDER"
         )
         prefix = "total"
 
-    annotated[f"{prefix}_pick"] = pick
+    annotated[f"{prefix}_candidate_side"] = candidate_side
+    # A "pick" is an approved wager, not merely the classifier's preferred
+    # direction. Anything else stays available as candidate_side for research.
+    annotated[f"{prefix}_pick"] = np.where(
+        status == "VALIDATED",
+        candidate_side,
+        "",
+    )
     annotated[f"{prefix}_probability"] = numeric(
         annotated["market_side_probability"]
     )

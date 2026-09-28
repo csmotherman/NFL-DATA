@@ -15,6 +15,7 @@ DEFAULT_PRICE = -110.0
 CAUTION_EDGE_THRESHOLD = 0.08
 OUTER_SEASONS = list(range(2018, 2026))
 EDGE_THRESHOLDS = [0.00, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.08, 0.10, 0.12, 0.15, 0.18, 0.20]
+MARGIN_EDGE_THRESHOLDS = [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0, 6.0, 7.0]
 SIDE_MODES = ["both", "positive", "negative"]
 # Reverse orientation remains useful as a diagnostic, but allowing production
 # to flip the meaning of the classifier is too easy to data-mine. A bet must
@@ -508,6 +509,333 @@ def season_breakdown(
         if stats["bets"]:
             output.append({"season": season, **stats})
     return output
+
+
+def annotate_margin_picks(rows: pd.DataFrame) -> pd.DataFrame:
+    out = rows.copy()
+    prediction = numeric(out["independent_margin_prediction"])
+    line = numeric(out["spread_line"])
+    edge = prediction - line
+    out["margin_edge_points"] = edge
+    out["margin_side"] = np.sign(edge).astype(int)
+
+    home_odds = price_array(out, "home_spread_odds")
+    away_odds = price_array(out, "away_spread_odds")
+    out["margin_price"] = np.where(
+        out["margin_side"].eq(1),
+        home_odds,
+        away_odds,
+    )
+    return out
+
+
+def evaluate_margin_strategy(rows: pd.DataFrame, strategy: dict) -> dict:
+    if rows.empty or not strategy or strategy.get("side_mode") == "none":
+        return {
+            "bets": 0, "wins": 0, "losses": 0,
+            "win_rate": None, "roi": None, "profit_units": 0.0,
+        }
+
+    work = annotate_margin_picks(rows)
+    threshold = float(strategy.get("threshold_points", 0.0))
+    side_mode = strategy.get("side_mode", "both")
+    segment = strategy.get("segment", "all")
+
+    mask = numeric(work["margin_edge_points"]).abs().ge(threshold)
+    mask &= numeric(work["margin_side"]).ne(0)
+
+    segment_rows = work.copy()
+    segment_rows["market_side"] = segment_rows["margin_side"]
+    mask &= segment_mask(segment_rows, "spread", segment)
+
+    if side_mode == "positive":
+        mask &= numeric(work["margin_side"]).eq(1)
+    elif side_mode == "negative":
+        mask &= numeric(work["margin_side"]).eq(-1)
+
+    bets = work[mask].copy()
+    if bets.empty:
+        return {
+            "bets": 0, "wins": 0, "losses": 0,
+            "win_rate": None, "roi": None, "profit_units": 0.0,
+        }
+
+    actual_side = np.where(numeric(bets["market_target"]).eq(1), 1, -1)
+    picked_side = numeric(bets["margin_side"]).to_numpy(dtype=int)
+    wins_mask = picked_side == actual_side
+    wins = int(np.sum(wins_mask))
+    losses = int(len(bets) - wins)
+    payouts = np.array([american_profit(v) for v in numeric(bets["margin_price"])])
+    profits = np.where(wins_mask, payouts, -1.0)
+    profit = float(np.sum(profits))
+
+    return {
+        "bets": int(len(bets)),
+        "wins": wins,
+        "losses": losses,
+        "win_rate": round(wins / len(bets), 4),
+        "roi": round(profit / len(bets), 4),
+        "profit_units": round(profit, 3),
+    }
+
+
+def margin_season_breakdown(rows: pd.DataFrame, strategy: dict) -> list[dict]:
+    output = []
+    for season in sorted(int(v) for v in rows["season"].dropna().unique()):
+        stats = evaluate_margin_strategy(
+            rows[rows["season"].eq(season)],
+            strategy,
+        )
+        if stats["bets"]:
+            output.append({"season": season, **stats})
+    return output
+
+
+def select_margin_strategy(rows: pd.DataFrame) -> dict:
+    if rows.empty:
+        return {
+            "side_mode": "none",
+            "segment": "all",
+            "threshold_points": 999.0,
+            "stable": False,
+            "reason": "No prior OOF rows.",
+        }
+
+    seasons = sorted(int(v) for v in rows["season"].dropna().unique())
+    min_bets = max(50, 18 * max(len(seasons), 1))
+    candidates = []
+
+    for segment in strategy_segments("spread"):
+        for side_mode in SIDE_MODES:
+            for threshold in MARGIN_EDGE_THRESHOLDS:
+                strategy = {
+                    "side_mode": side_mode,
+                    "segment": segment,
+                    "threshold_points": float(threshold),
+                }
+                stats = evaluate_margin_strategy(rows, strategy)
+                if stats["bets"] < min_bets or stats["roi"] is None:
+                    continue
+
+                by_season = margin_season_breakdown(rows, strategy)
+                season_rois = [
+                    row["roi"] for row in by_season
+                    if row["roi"] is not None
+                ]
+                season_count = len(by_season)
+                profitable = sum(
+                    1 for row in by_season
+                    if row["roi"] is not None and row["roi"] > 0
+                )
+                profitable_share = (
+                    profitable / season_count if season_count else 0.0
+                )
+                roi_sd = float(np.std(season_rois)) if season_rois else 1.0
+                recent_rows = by_season[-2:]
+                recent_bets = sum(row["bets"] for row in recent_rows)
+                recent_profit = sum(row["profit_units"] for row in recent_rows)
+                recent_roi = recent_profit / recent_bets if recent_bets else -1.0
+                latest_roi = by_season[-1]["roi"] if by_season else -1.0
+
+                robust_score = (
+                    0.55 * float(stats["roi"])
+                    + 0.45 * recent_roi
+                    - 0.25 * roi_sd
+                    + 0.010 * math.log1p(stats["bets"])
+                    + 0.02 * profitable_share
+                )
+                stable = (
+                    season_count >= min(2, len(seasons))
+                    and stats["roi"] > 0
+                    and recent_roi > 0
+                    and latest_roi is not None
+                    and latest_roi > 0
+                    and profitable_share >= 0.60
+                )
+                candidates.append({
+                    **strategy,
+                    **stats,
+                    "seasons_with_bets": season_count,
+                    "profitable_seasons": profitable,
+                    "profitable_season_share": round(profitable_share, 4),
+                    "roi_sd": round(roi_sd, 4),
+                    "recent_roi": round(float(recent_roi), 4),
+                    "latest_season_roi": round(float(latest_roi), 4),
+                    "robust_score": round(float(robust_score), 6),
+                    "stable": bool(stable),
+                    "by_season": by_season,
+                })
+
+    stable = [row for row in candidates if row["stable"]]
+    if not stable:
+        return {
+            "side_mode": "none",
+            "segment": "all",
+            "threshold_points": 999.0,
+            "stable": False,
+            "reason": "No prior OOF margin strategy cleared stability gates.",
+            "candidates_tested": len(candidates),
+        }
+
+    best = max(
+        stable,
+        key=lambda row: (row["robust_score"], row["roi"], row["bets"]),
+    )
+    best["candidates_tested"] = len(candidates)
+    return best
+
+
+def directional_pick_stats(rows: pd.DataFrame, side: pd.Series) -> dict:
+    work = rows.copy()
+    picked = numeric(side)
+    valid = picked.isin([-1, 1])
+    work = work[valid].copy()
+    picked = picked[valid]
+
+    if work.empty:
+        return {
+            "bets": 0, "wins": 0, "losses": 0,
+            "win_rate": None, "roi": None, "profit_units": 0.0,
+        }
+
+    actual = np.where(numeric(work["market_target"]).eq(1), 1, -1)
+    wins_mask = picked.to_numpy(dtype=int) == actual
+    home_odds = price_array(work, "home_spread_odds")
+    away_odds = price_array(work, "away_spread_odds")
+    chosen_odds = np.where(picked.to_numpy(dtype=int) == 1, home_odds, away_odds)
+    payouts = np.array([american_profit(v) for v in chosen_odds])
+    profits = np.where(wins_mask, payouts, -1.0)
+    wins = int(np.sum(wins_mask))
+    losses = int(len(work) - wins)
+    profit = float(np.sum(profits))
+
+    return {
+        "bets": int(len(work)),
+        "wins": wins,
+        "losses": losses,
+        "win_rate": round(wins / len(work), 4),
+        "roi": round(profit / len(work), 4),
+        "profit_units": round(profit, 3),
+    }
+
+
+def spread_model_comparison(
+    full_oof: pd.DataFrame,
+    current_season: int,
+    discovery_end_season: int = 2021,
+    confirmation_start_season: int = 2022,
+) -> dict:
+    if full_oof.empty:
+        return {"status": "no_oof_rows"}
+
+    classifier_rows = full_oof.drop(
+        columns=["independent_margin_prediction"],
+        errors="ignore",
+    )
+    classifier_rows = annotate_probabilities(
+        classifier_rows,
+        classifier_rows["raw_probability_positive"].to_numpy(dtype=float),
+        "spread",
+        orientation="normal",
+    )
+
+    margin_rows = annotate_margin_picks(full_oof)
+
+    raw_classifier = directional_pick_stats(
+        classifier_rows,
+        classifier_rows["market_side"],
+    )
+    raw_margin = directional_pick_stats(
+        margin_rows,
+        margin_rows["margin_side"],
+    )
+
+    disagreement_mask = (
+        numeric(classifier_rows["market_side"]).isin([-1, 1])
+        & numeric(margin_rows["margin_side"]).isin([-1, 1])
+        & numeric(classifier_rows["market_side"]).ne(
+            numeric(margin_rows["margin_side"])
+        )
+    )
+    disagreements = full_oof[disagreement_mask].copy()
+    classifier_disagree_side = classifier_rows.loc[
+        disagreement_mask, "market_side"
+    ]
+    margin_disagree_side = margin_rows.loc[
+        disagreement_mask, "margin_side"
+    ]
+
+    discovery_mask = full_oof["season"] <= discovery_end_season
+    confirmation_mask = (
+        (full_oof["season"] >= confirmation_start_season)
+        & (full_oof["season"] < current_season)
+    )
+
+    classifier_discovery = classifier_rows[discovery_mask].copy()
+    classifier_confirmation = classifier_rows[confirmation_mask].copy()
+    margin_discovery = margin_rows[discovery_mask].copy()
+    margin_confirmation = margin_rows[confirmation_mask].copy()
+
+    classifier_strategy = select_strategy(
+        classifier_discovery,
+        "spread",
+    )
+    classifier_confirmation_stats = evaluate_strategy(
+        classifier_confirmation,
+        "spread",
+        classifier_strategy,
+    )
+    classifier_confirmation_by_season = season_breakdown(
+        classifier_confirmation,
+        "spread",
+        classifier_strategy,
+    )
+
+    margin_strategy = select_margin_strategy(margin_discovery)
+    margin_confirmation_stats = evaluate_margin_strategy(
+        margin_confirmation,
+        margin_strategy,
+    )
+    margin_confirmation_by_season = margin_season_breakdown(
+        margin_confirmation,
+        margin_strategy,
+    )
+
+    return {
+        "status": "ok",
+        "oof_seasons": sorted(
+            int(v) for v in full_oof["season"].dropna().unique()
+        ),
+        "raw_direction_all_oof": {
+            "ats_classifier": raw_classifier,
+            "projected_margin": raw_margin,
+        },
+        "when_models_disagree": {
+            "games": int(disagreement_mask.sum()),
+            "ats_classifier": directional_pick_stats(
+                disagreements,
+                classifier_disagree_side,
+            ),
+            "projected_margin": directional_pick_stats(
+                disagreements,
+                margin_disagree_side,
+            ),
+        },
+        "frozen_confirmation_2022_2025": {
+            "discovery_through": int(discovery_end_season),
+            "confirmation_from": int(confirmation_start_season),
+            "ats_classifier": {
+                "frozen_strategy": classifier_strategy,
+                **classifier_confirmation_stats,
+                "by_season": classifier_confirmation_by_season,
+            },
+            "projected_margin": {
+                "frozen_strategy": margin_strategy,
+                **margin_confirmation_stats,
+                "by_season": margin_confirmation_by_season,
+            },
+        },
+    }
 
 
 def select_strategy(rows: pd.DataFrame, kind: str) -> dict:
@@ -1124,6 +1452,12 @@ def walk_forward_strategy_validation(
                 production_strategy,
             )
 
+        model_comparison = (
+            spread_model_comparison(full_oof, current_season)
+            if kind == "spread"
+            else None
+        )
+
         output[kind] = {
             "status": "ok",
             "method": "nested_walk_forward_classifier",
@@ -1163,6 +1497,7 @@ def walk_forward_strategy_validation(
             "frozen_confirmation": frozen_confirmation,
             "production_strategy": production_strategy,
             "current_season_shadow": current_shadow,
+            "model_comparison": model_comparison,
             "final_strategy": final_strategy,
             "thresholds": fixed_threshold_diagnostics(
                 full_oof, kind

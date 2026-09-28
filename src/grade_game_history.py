@@ -175,27 +175,58 @@ def enrich_board(
     valid_spread = report.get("validated_spread_threshold")
     valid_total = report.get("validated_total_threshold")
 
-    board["spread_pick"] = np.where(
-        numeric(board["spread_edge"]) >= 0,
-        board["home_team"],
-        board["away_team"],
-    )
+    if "spread_pick" not in board.columns:
+        board["spread_pick"] = np.where(
+            numeric(board["spread_edge"]) >= 0,
+            board["home_team"],
+            board["away_team"],
+        )
+    else:
+        fallback_spread_pick = np.where(
+            numeric(board["spread_edge"]) >= 0,
+            board["home_team"],
+            board["away_team"],
+        )
+        board["spread_pick"] = board["spread_pick"].where(
+            board["spread_pick"].astype(str).str.len().gt(0),
+            fallback_spread_pick,
+        )
+
     board["spread_pick_line"] = board.apply(
         lambda row: format_team_spread(row, row["spread_pick"]),
         axis=1,
     )
-    board["spread_status"] = board["spread_edge"].apply(
-        lambda edge: status_for_edge(edge, watch_spread, valid_spread)
-    )
 
-    board["total_pick"] = np.where(
-        numeric(board["total_edge"]) >= 0,
-        "OVER",
-        "UNDER",
-    )
-    board["total_status"] = board["total_edge"].apply(
-        lambda edge: status_for_edge(edge, watch_total, valid_total)
-    )
+    if "spread_status" not in board.columns:
+        board["spread_status"] = board["spread_edge"].apply(
+            lambda edge: status_for_edge(edge, watch_spread, valid_spread)
+        )
+    else:
+        board["spread_status"] = board["spread_status"].fillna("NO BET")
+
+    if "total_pick" not in board.columns:
+        board["total_pick"] = np.where(
+            numeric(board["total_edge"]) >= 0,
+            "OVER",
+            "UNDER",
+        )
+    else:
+        fallback_total_pick = np.where(
+            numeric(board["total_edge"]) >= 0,
+            "OVER",
+            "UNDER",
+        )
+        board["total_pick"] = board["total_pick"].where(
+            board["total_pick"].astype(str).str.len().gt(0),
+            fallback_total_pick,
+        )
+
+    if "total_status" not in board.columns:
+        board["total_status"] = board["total_edge"].apply(
+            lambda edge: status_for_edge(edge, watch_total, valid_total)
+        )
+    else:
+        board["total_status"] = board["total_status"].fillna("NO BET")
 
     board["moneyline_pick"] = board["model_favorite"]
     board["moneyline_price"] = np.where(

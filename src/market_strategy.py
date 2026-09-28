@@ -687,14 +687,27 @@ def predict_current_market(
     elif side_mode == "none":
         qualified &= False
 
+    line_column = (
+        "spread_line" if kind == "spread"
+        else "total_line"
+    )
+    has_line = numeric(
+        annotated[line_column]
+    ).notna()
+    qualified &= has_line
+
     validated = bool(
         validation.get("strategy_validated")
     )
     status = np.where(
-        qualified & validated,
-        "VALIDATED",
+        ~has_line,
+        "NO LINE",
         np.where(
-            qualified, "WATCH", "NO BET"
+            qualified & validated,
+            "VALIDATED",
+            np.where(
+                qualified, "WATCH", "NO BET"
+            ),
         ),
     )
 

@@ -16,17 +16,17 @@
   };
 
   var PATHS = {
-    board: '/outputs/latest_betting_board.csv',
-    fallbackBoard: '/outputs/latest_predictions.csv',
-    candidates: '/outputs/latest_candidates.csv',
-    propEdges: '/outputs/latest_player_prop_edges.csv',
-    propProjections: '/outputs/latest_player_props.csv',
-    gameHistory: '/outputs/game_bet_history.csv',
-    propHistory: '/outputs/prop_bet_history.csv',
-    historySummary: '/outputs/bet_history_summary.json',
-    modelReport: '/outputs/model_report.json',
-    propModelReport: '/outputs/player_prop_model_report.json',
-    propForwardReport: '/outputs/prop_forward_report.json'
+    board: 'outputs/latest_betting_board.csv',
+    fallbackBoard: 'outputs/latest_predictions.csv',
+    candidates: 'outputs/latest_candidates.csv',
+    propEdges: 'outputs/latest_player_prop_edges.csv',
+    propProjections: 'outputs/latest_player_props.csv',
+    gameHistory: 'outputs/game_bet_history.csv',
+    propHistory: 'outputs/prop_bet_history.csv',
+    historySummary: 'outputs/bet_history_summary.json',
+    modelReport: 'outputs/model_report.json',
+    propModelReport: 'outputs/player_prop_model_report.json',
+    propForwardReport: 'outputs/prop_forward_report.json'
   };
 
   function $(id) {

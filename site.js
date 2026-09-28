@@ -349,12 +349,8 @@
       .filter(isFinal)
       .sort((a, b) => String(b.gameday).localeCompare(String(a.gameday)));
 
-    const html = completedRowsHtml(rows);
-
     $('completedSection').hidden = rows.length === 0;
-    $('historyCompletedSection').hidden = rows.length === 0;
-    $('completedBody').innerHTML = html;
-    $('historyCompletedBody').innerHTML = html;
+    $('completedBody').innerHTML = completedRowsHtml(rows);
   }
 
   function propMarkets() {
@@ -475,16 +471,37 @@
     };
   }
 
+  function completedGradeStats(grader) {
+    const grades = state.board.filter(isFinal).map(grader);
+    const wins = grades.filter((grade) => grade === 'win').length;
+    const losses = grades.filter((grade) => grade === 'loss').length;
+    const pushes = grades.filter((grade) => grade === 'push').length;
+    const decisions = wins + losses;
+
+    return {
+      wins,
+      losses,
+      pushes,
+      decisions,
+      hitRate: decisions ? wins / decisions : null
+    };
+  }
+
+  function completedRecordText(stats) {
+    if (!stats || (!stats.wins && !stats.losses && !stats.pushes)) return '0-0';
+    return stats.wins + '-' + stats.losses + (stats.pushes ? '-' + stats.pushes : '');
+  }
+
   function renderHistorySummary() {
-    const spread = state.historySummary.spread_qualified || {};
-    const total = state.historySummary.total_qualified || {};
-    const moneyline = state.historySummary.moneyline_all_model_picks || {};
+    const spread = completedGradeStats(spreadResult);
+    const total = completedGradeStats(totalResult);
+    const moneyline = completedGradeStats(moneylineResult);
     const props = propHistoryStats();
 
     $('historySummary').innerHTML =
-      summaryCard('Spread', recordText(spread), spread.decisions ? pct(spread.hit_rate, 1) + ' hit rate' : 'No settled forward bets') +
-      summaryCard('Total', recordText(total), total.decisions ? pct(total.hit_rate, 1) + ' hit rate' : 'No settled forward bets') +
-      summaryCard('Moneyline', recordText(moneyline), moneyline.decisions ? pct(moneyline.hit_rate, 1) + ' hit rate' : 'No settled forward bets') +
+      summaryCard('Spread', completedRecordText(spread), spread.decisions ? pct(spread.hitRate, 1) + ' hit · completed model games' : 'No completed model games') +
+      summaryCard('Total', completedRecordText(total), total.decisions ? pct(total.hitRate, 1) + ' hit · completed model games' : 'No completed model games') +
+      summaryCard('Moneyline', completedRecordText(moneyline), moneyline.decisions ? pct(moneyline.hitRate, 1) + ' hit · completed model games' : 'No completed model games') +
       summaryCard('Player Props', props.decisions ? props.wins + '-' + props.losses : '0-0', props.decisions ? pct(props.hitRate, 1) + ' hit rate' : 'No settled locked props');
   }
 
@@ -502,7 +519,10 @@
   }
 
   function populateHistoryWeeks() {
-    const rows = state.historyType === 'games' ? state.gameHistory : state.propHistory;
+    const rows = state.historyType === 'games'
+      ? state.gameHistory.concat(state.board.filter(isFinal))
+      : state.propHistory;
+
     $('historyWeek').innerHTML =
       '<option value="all">All weeks</option>' +
       historyWeeks(rows).map((key) => {
@@ -517,6 +537,19 @@
 
     if (selected === 'all') return rows.slice();
     return rows.filter((row) => row.season + '-' + row.week === selected);
+  }
+
+  function filteredCompletedHistoryRows() {
+    const selected = $('historyWeek').value || 'all';
+    let rows = state.board
+      .filter(isFinal)
+      .sort((a, b) => String(b.gameday).localeCompare(String(a.gameday)));
+
+    if (selected !== 'all') {
+      rows = rows.filter((row) => row.season + '-' + row.week === selected);
+    }
+
+    return rows;
   }
 
   function emptyHistory(title, text) {
@@ -576,10 +609,56 @@
       '</tbody></table></div>';
   }
 
+  function completedHistoryTable(rows) {
+    if (!rows.length) {
+      return emptyHistory(
+        'No completed model games for this week.',
+        'Completed model results will appear here after games finish.'
+      );
+    }
+
+    return '<div class="table-count"><strong>Completed Model Games</strong> · Green = correct, red = incorrect, gray = push.</div>' +
+      '<div class="table-scroll"><table class="data-table">' +
+      '<thead><tr><th>Week</th><th>Game</th><th>Final Score</th><th>Projected Score</th><th>Spread Pick</th><th>Spread Edge</th><th>Total Pick</th><th>Total Edge</th><th>ML Pick</th></tr></thead>' +
+      '<tbody>' +
+      rows.map((row) => {
+        const spreadGrade = spreadResult(row);
+        const totalGrade = totalResult(row);
+        const moneylineGrade = moneylineResult(row);
+
+        return '<tr>' +
+          '<td class="number">' + esc(row.season + ' W' + Number(row.week)) + '</td>' +
+          '<td><span class="game-main">' + esc(row.away_team + ' @ ' + row.home_team) + '</span><span class="game-sub">' + esc(dateLabel(row.gameday)) + '</span></td>' +
+          '<td class="number">' + esc(finalScore(row)) + '</td>' +
+          '<td class="number">' + esc(projectedScore(row)) + '</td>' +
+          '<td class="number' + resultClass(spreadGrade) + '">' + esc((row.spread_pick || '—') + ' ' + signed(row.spread_pick_line, 1)) + '</td>' +
+          '<td class="number">' + esc(signed(row.spread_edge, 1)) + '</td>' +
+          '<td class="number' + resultClass(totalGrade) + '">' + esc((row.total_pick || '—') + ' ' + fmt(row.total_line, 1)) + '</td>' +
+          '<td class="number">' + esc(signed(row.total_edge, 1)) + '</td>' +
+          '<td class="number' + resultClass(moneylineGrade) + '">' + esc((row.moneyline_pick || '—') + ' ' + odds(row.moneyline_price)) + '</td>' +
+          '</tr>';
+      }).join('') +
+      '</tbody></table></div>';
+  }
+
   function renderHistory() {
     const rows = filteredHistoryRows();
-    $('historyContent').innerHTML =
-      state.historyType === 'games' ? gameHistoryTable(rows) : propHistoryTable(rows);
+
+    if (state.historyType === 'games') {
+      const completedRows = filteredCompletedHistoryRows();
+      let html = completedHistoryTable(completedRows);
+
+      if (rows.length) {
+        html += '<div class="table-count" style="margin-top:20px"><strong>Audited Forward Bet Record</strong> · Only pre-kickoff locked predictions.</div>' +
+          gameHistoryTable(rows);
+      } else {
+        html += '<div class="table-count" style="margin-top:14px">Audited forward record: no pre-kickoff locked settled bets yet.</div>';
+      }
+
+      $('historyContent').innerHTML = html;
+    } else {
+      $('historyContent').innerHTML = propHistoryTable(rows);
+    }
   }
 
   function renderModelSummary() {

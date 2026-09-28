@@ -198,7 +198,7 @@
   }
 
   function isApprovedBet(status) {
-    return String(status || '').toUpperCase() === 'VALIDATED';
+    return ['VALIDATED', 'CAUTION'].includes(String(status || '').toUpperCase());
   }
 
   function spreadBetText(row) {
@@ -246,8 +246,8 @@
 
     if (filter === 'watch') {
       rows = rows.filter((row) => {
-        return ['WATCH', 'VALIDATED'].includes(String(row.spread_status).toUpperCase()) ||
-          ['WATCH', 'VALIDATED'].includes(String(row.total_status).toUpperCase());
+        return ['CAUTION', 'VALIDATED'].includes(String(row.spread_status).toUpperCase()) ||
+          ['CAUTION', 'VALIDATED'].includes(String(row.total_status).toUpperCase());
       });
     } else if (filter === 'spread') {
       rows = rows.filter((row) => isApprovedBet(row.spread_status));

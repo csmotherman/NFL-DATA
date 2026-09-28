@@ -117,7 +117,7 @@
     var line = num(row.spread_line);
     if (line === null) return '—';
     if (line === 0) return 'PK';
-    return (line < 0 ? row.home_team : row.away_team) + ' ' + signed(-Math.abs(line), 1);
+    return (line > 0 ? row.home_team : row.away_team) + ' ' + signed(-Math.abs(line), 1);
   }
   function modelMarginText(row) {
     var m = num(row.model_home_margin);

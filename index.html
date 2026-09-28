@@ -3,212 +3,237 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="description" content="NFL model and market betting research dashboard with forward-locked results.">
-  <title>NFL EDGE — Betting Research Dashboard</title>
+  <meta name="description" content="NFL model, market, player props and forward betting history.">
+  <title>NFL Betting Model</title>
   <link rel="stylesheet" href="site.css">
 </head>
 <body>
   <header class="site-header">
     <div class="header-inner">
-      <a class="brand" href="#this-week" aria-label="NFL EDGE home">
-        <span class="brand-mark">NE</span>
-        <span>
-          <strong>NFL EDGE</strong>
-          <small>MODEL + MARKET</small>
-        </span>
+      <a class="brand" href="#week" data-route="week">
+        <span class="brand-title">NFL BETTING MODEL</span>
+        <span class="brand-sub">MODEL · MARKET · RESULTS</span>
       </a>
-      <nav class="top-nav" aria-label="Primary navigation">
-        <button class="nav-link is-active" data-view="this-week">This Week</button>
-        <button class="nav-link" data-view="player-props">Player Props</button>
-        <button class="nav-link" data-view="history">History</button>
-        <button class="nav-link" data-view="method">Method</button>
+      <nav class="nav" aria-label="Primary navigation">
+        <button class="nav-item is-active" data-route="week">This Week</button>
+        <button class="nav-item" data-route="props">Player Props</button>
+        <button class="nav-item" data-route="history">History</button>
+        <button class="nav-item" data-route="model">Model</button>
       </nav>
-      <div class="data-state" id="dataState">
-        <span class="status-dot"></span>
-        <span>Loading data</span>
-      </div>
+      <div class="load-state" id="loadState"><span class="load-dot"></span><span>Loading</span></div>
     </div>
   </header>
 
-  <main class="shell">
-    <section class="view is-active" id="view-this-week" aria-labelledby="weekTitle">
-      <div class="page-head">
+  <main class="page-shell">
+    <section class="page is-active" id="page-week">
+      <div class="page-title-row">
         <div>
-          <div class="eyebrow">CURRENT BOARD</div>
-          <h1 id="weekTitle">NFL betting board</h1>
-          <p class="lede">The model, market, and edge in one place. WATCH means a meaningful discrepancy—not a proven betting advantage.</p>
+          <p class="kicker">CURRENT WEEK</p>
+          <h1>NFL Betting Board</h1>
+          <p class="page-description">One place to compare the model with the market. Finished games are kept separate from upcoming opportunities.</p>
         </div>
-        <div class="week-chip" id="weekChip">—</div>
+        <div class="week-label" id="weekLabel">—</div>
       </div>
 
-      <div class="stat-grid" id="weekStats"></div>
+      <div class="summary-grid" id="weekSummary"></div>
 
-      <section class="summary-section" aria-labelledby="edgeTitle">
-        <div class="section-row">
+      <section class="section" id="upcomingSection">
+        <div class="section-head">
           <div>
-            <div class="section-kicker">MODEL VS MARKET</div>
-            <h2 id="edgeTitle">Largest discrepancies</h2>
+            <p class="section-label">UPCOMING</p>
+            <h2>Games still on the board</h2>
+            <p>Market line, model projection and the size of the disagreement.</p>
           </div>
-          <p>Quick scan of the biggest current gaps before reviewing the full board.</p>
-        </div>
-        <div class="edge-strip" id="edgeStrip"></div>
-      </section>
-
-      <section class="panel">
-        <div class="panel-head">
-          <div>
-            <div class="section-kicker">FULL WEEK</div>
-            <h2>All games</h2>
-            <p>Projected score, spread, total, moneyline and model context in one table.</p>
-          </div>
-          <div class="legend">
-            <span><i class="legend-dot validated"></i>Validated</span>
-            <span><i class="legend-dot watch"></i>Watch</span>
-            <span><i class="legend-dot lean"></i>Lean</span>
+          <div class="toolbar">
+            <label class="control">
+              <span>Show</span>
+              <select id="weekFilter">
+                <option value="all">All upcoming</option>
+                <option value="watch">Watch only</option>
+                <option value="spread">Spread edges</option>
+                <option value="total">Total edges</option>
+              </select>
+            </label>
           </div>
         </div>
-        <div class="table-wrap">
-          <table class="data-table game-table">
+        <div class="table-frame">
+          <table class="board-table">
             <thead>
+              <tr class="group-row">
+                <th rowspan="2" class="sticky-col game-col">Game</th>
+                <th colspan="2">Model</th>
+                <th colspan="4">Spread</th>
+                <th colspan="4">Total</th>
+                <th colspan="2">Moneyline</th>
+              </tr>
               <tr>
-                <th>Game</th>
+                <th>Score</th>
+                <th>Margin</th>
+                <th>Market</th>
+                <th>Pick</th>
+                <th>Edge</th>
+                <th>Status</th>
+                <th>Market</th>
                 <th>Model</th>
-                <th>Spread</th>
-                <th>Total</th>
-                <th>Moneyline</th>
-                <th>Context</th>
+                <th>Edge</th>
+                <th>Pick</th>
+                <th>Pick</th>
+                <th>Price</th>
               </tr>
             </thead>
-            <tbody id="gameBoardBody"></tbody>
+            <tbody id="upcomingBody"></tbody>
           </table>
+          <div class="empty-table" id="upcomingEmpty" hidden>No upcoming games match this filter.</div>
+        </div>
+      </section>
+
+      <section class="section" id="completedSection">
+        <div class="section-head compact-head">
+          <div>
+            <p class="section-label">COMPLETED</p>
+            <h2>Earlier games from this model run</h2>
+            <p>Shown for context only. These are not counted as forward bets unless they were locked before kickoff.</p>
+          </div>
+          <button class="text-button" id="toggleCompleted" type="button">Show completed games</button>
+        </div>
+        <div id="completedWrap" hidden>
+          <div class="table-frame">
+            <table class="simple-table">
+              <thead>
+                <tr>
+                  <th>Game</th>
+                  <th>Final</th>
+                  <th>Projected</th>
+                  <th>Spread pick</th>
+                  <th>Spread edge</th>
+                  <th>Total pick</th>
+                  <th>Total edge</th>
+                  <th>ML lean</th>
+                </tr>
+              </thead>
+              <tbody id="completedBody"></tbody>
+            </table>
+          </div>
         </div>
       </section>
     </section>
 
-    <section class="view" id="view-player-props" aria-labelledby="propsTitle">
-      <div class="page-head">
+    <section class="page" id="page-props">
+      <div class="page-title-row">
         <div>
-          <div class="eyebrow">PLAYER MARKETS</div>
-          <h1 id="propsTitle">Player props</h1>
-          <p class="lede">When sportsbook lines are loaded, this becomes a price-aware edge board. Without lines, projections are shown as research only.</p>
+          <p class="kicker">PLAYER MARKETS</p>
+          <h1>Player Props</h1>
+          <p class="page-description">Sportsbook comparisons when lines are available; otherwise this page stays strictly as a projection board.</p>
         </div>
       </div>
 
-      <div id="propNotice"></div>
+      <div class="callout" id="propCallout"></div>
 
-      <section class="panel">
-        <div class="panel-head controls-head">
+      <section class="section">
+        <div class="section-head">
           <div>
-            <h2 id="propTableTitle">Prop board</h2>
-            <p id="propTableSubtitle">Model projection versus available market price.</p>
+            <p class="section-label" id="propModeLabel">PROJECTIONS</p>
+            <h2 id="propTitle">Player projection board</h2>
+            <p id="propSubtitle">Model output by player and market.</p>
           </div>
-          <div class="filters">
-            <label>
+          <div class="toolbar prop-toolbar">
+            <label class="control">
               <span>Market</span>
-              <select id="propMarketFilter"></select>
+              <select id="propMarket"></select>
             </label>
-            <label>
+            <label class="control search-control">
               <span>Search</span>
               <input id="propSearch" type="search" placeholder="Player or team">
             </label>
           </div>
         </div>
-        <div class="table-wrap">
-          <table class="data-table" id="propTable">
-            <thead id="propTableHead"></thead>
-            <tbody id="propTableBody"></tbody>
+        <div class="table-meta" id="propCount"></div>
+        <div class="table-frame">
+          <table class="simple-table props-table">
+            <thead id="propHead"></thead>
+            <tbody id="propBody"></tbody>
           </table>
+          <div class="empty-table" id="propEmpty" hidden>No player props match these filters.</div>
         </div>
-        <div class="table-foot" id="propTableFoot"></div>
       </section>
     </section>
 
-    <section class="view" id="view-history" aria-labelledby="historyTitle">
-      <div class="page-head">
+    <section class="page" id="page-history">
+      <div class="page-title-row">
         <div>
-          <div class="eyebrow">FORWARD RECORD</div>
-          <h1 id="historyTitle">Bet history</h1>
-          <p class="lede">Only picks locked before results are known count here. Backtests live separately under Method.</p>
+          <p class="kicker">FORWARD RECORD</p>
+          <h1>Bet History</h1>
+          <p class="page-description">Only pregame-locked picks belong here. Backtests and hindsight reruns stay out of the live record.</p>
         </div>
       </div>
 
-      <div class="stat-grid" id="historyStats"></div>
+      <div class="summary-grid" id="historySummary"></div>
 
-      <section class="panel">
-        <div class="panel-head controls-head">
-          <div class="segmented" role="group" aria-label="History type">
+      <section class="section">
+        <div class="section-head">
+          <div class="segmented" aria-label="History type">
             <button class="segment is-active" data-history="games">Game Bets</button>
             <button class="segment" data-history="props">Player Props</button>
           </div>
-          <div class="filters">
-            <label>
-              <span>Week</span>
-              <select id="historyWeekFilter"></select>
-            </label>
-          </div>
+          <label class="control history-week-control">
+            <span>Week</span>
+            <select id="historyWeek"></select>
+          </label>
         </div>
         <div id="historyContent"></div>
       </section>
     </section>
 
-    <section class="view" id="view-method" aria-labelledby="methodTitle">
-      <div class="page-head">
+    <section class="page" id="page-model">
+      <div class="page-title-row">
         <div>
-          <div class="eyebrow">MODEL AUDIT</div>
-          <h1 id="methodTitle">Method & validation</h1>
-          <p class="lede">The independent football model and the market-residual betting layer are measured separately. Forward results are never replaced by a rerun.</p>
+          <p class="kicker">VALIDATION</p>
+          <h1>Model Performance</h1>
+          <p class="page-description">Independent football accuracy, betting-layer walk-forward tests and player-projection validation.</p>
         </div>
       </div>
 
-      <div class="stat-grid" id="methodStats"></div>
+      <div class="summary-grid" id="modelSummary"></div>
 
-      <div class="method-grid">
-        <section class="panel">
-          <div class="panel-head">
-            <div>
-              <h2>Market walk-forward tests</h2>
-              <p>Sequential out-of-sample seasons. A threshold stays WATCH until it survives the repository's validation gate.</p>
-            </div>
+      <section class="section">
+        <div class="section-head compact-head">
+          <div>
+            <p class="section-label">GAME MARKETS</p>
+            <h2>Walk-forward betting tests</h2>
+            <p>Out-of-sample seasons are combined by edge threshold. “Watch” means the rule has not passed the repository's stability gate.</p>
           </div>
-          <div id="walkForwardTables"></div>
-        </section>
-
-        <section class="panel">
-          <div class="panel-head">
-            <div>
-              <h2>Player model validation</h2>
-              <p>Walk-forward player projections compared with recent-form baselines.</p>
-            </div>
-          </div>
-          <div class="table-wrap">
-            <table class="data-table compact">
-              <thead>
-                <tr>
-                  <th>Market</th>
-                  <th>Blend MAE</th>
-                  <th>Baseline MAE</th>
-                  <th>OOF rows</th>
-                </tr>
-              </thead>
-              <tbody id="playerMethodBody"></tbody>
-            </table>
-          </div>
-        </section>
-      </div>
-
-      <section class="integrity-box">
-        <strong>Record integrity</strong>
-        <p>The dashboard does not reconstruct past bets from a model rerun after games finish. A weekly snapshot must exist before kickoff to enter the forward record. That makes the history smaller at first, but trustworthy.</p>
+        </div>
+        <div class="model-tables" id="marketValidation"></div>
       </section>
+
+      <section class="section">
+        <div class="section-head compact-head">
+          <div>
+            <p class="section-label">PLAYER MODELS</p>
+            <h2>Projection error by market</h2>
+            <p>Walk-forward model MAE compared with the recent-form baseline.</p>
+          </div>
+        </div>
+        <div class="table-frame">
+          <table class="simple-table">
+            <thead>
+              <tr><th>Market</th><th>Model MAE</th><th>Baseline MAE</th><th>Difference</th><th>OOF rows</th></tr>
+            </thead>
+            <tbody id="playerValidationBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <div class="integrity-note">
+        <strong>Forward-record rule</strong>
+        <p>A result only enters Bet History if its prediction snapshot was archived before the game had a final score. Historical model tests are shown on this page instead of being mixed into the live record.</p>
+      </div>
     </section>
   </main>
 
-  <footer>
-    <div>
-      <strong>NFL EDGE</strong>
-      <span>Research and price discovery—not a guarantee of profit.</span>
-    </div>
-    <span id="generatedAt"></span>
+  <footer class="footer">
+    <span>NFL Betting Model</span>
+    <span id="refreshStamp"></span>
   </footer>
 
   <script src="site.js" defer></script>

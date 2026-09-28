@@ -1040,6 +1040,11 @@ def predict_current_market(
     qualified = numeric(
         annotated["market_probability_edge"]
     ).ge(threshold)
+    qualified &= segment_mask(
+        annotated,
+        kind,
+        strategy.get("segment", "all"),
+    )
 
     if side_mode == "positive":
         qualified &= numeric(

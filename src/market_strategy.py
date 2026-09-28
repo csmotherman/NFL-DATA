@@ -695,8 +695,7 @@ def fixed_threshold_diagnostics(
 
 
 def frozen_confirmation_test(
-    dataset: pd.DataFrame,
-    base_features: list[str],
+    full_oof: pd.DataFrame,
     kind: str,
     discovery_end_season: int = 2021,
     confirmation_start_season: int = 2022,
@@ -707,12 +706,6 @@ def frozen_confirmation_test(
     unchanged policy on later untouched seasons. This is intentionally harder
     than retuning a threshold every season.
     """
-    full_oof = generate_oof_predictions(
-        dataset,
-        base_features,
-        kind,
-        max_season_exclusive=current_season,
-    )
     discovery = full_oof[
         full_oof["season"] <= discovery_end_season
     ].copy()
@@ -923,8 +916,7 @@ def walk_forward_strategy_validation(
             >= math.ceil(seasons_with_bets * 0.60)
         )
         frozen_confirmation = frozen_confirmation_test(
-            dataset,
-            base_features,
+            full_oof,
             kind,
             discovery_end_season=2021,
             confirmation_start_season=2022,

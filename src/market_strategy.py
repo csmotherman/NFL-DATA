@@ -964,16 +964,27 @@ def walk_forward_strategy_validation(
                 strategy_validated
             ),
             "frozen_confirmation": frozen_confirmation,
+            "production_strategy": (
+                frozen_confirmation.get("frozen_strategy")
+                if frozen_confirmation.get("passed", False)
+                else {
+                    "orientation": "normal",
+                    "side_mode": "none",
+                    "segment": "all",
+                    "threshold": 1.0,
+                    "reason": "Frozen confirmation did not pass.",
+                }
+            ),
             "current_season_shadow": current_shadow,
             "final_strategy": final_strategy,
             "thresholds": fixed_threshold_diagnostics(
                 full_oof, kind
             ),
             "validated_threshold": (
-                final_strategy.get("threshold")
+                frozen_confirmation.get("frozen_strategy", {}).get("threshold")
                 if strategy_validated
                 and frozen_confirmation.get("passed", False)
-                and final_strategy.get("side_mode")
+                and frozen_confirmation.get("frozen_strategy", {}).get("side_mode")
                 != "none"
                 else None
             ),
@@ -1008,10 +1019,12 @@ def predict_current_market(
     )
 
     strategy = (
-        validation.get("final_strategy")
+        validation.get("production_strategy")
+        or validation.get("final_strategy")
         or {
             "orientation": "normal",
             "side_mode": "none",
+            "segment": "all",
             "threshold": 1.0,
         }
     )

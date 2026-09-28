@@ -211,6 +211,14 @@
     return row.total_pick + ' ' + fmt(row.total_line, 1);
   }
 
+  function betEdgeText(value, status) {
+    return isApprovedBet(status) ? pct(value, 1) : '—';
+  }
+
+  function betEvText(value, status) {
+    return isApprovedBet(status) ? pct(value, 1) : '—';
+  }
+
   function summaryCard(label, value, meta) {
     return '<div class="summary-card">' +
       '<div class="summary-label">' + esc(label) + '</div>' +
@@ -266,17 +274,16 @@
       return '<tr>' +
         '<td><span class="game-main">' + esc(row.away_team + ' @ ' + row.home_team) + '</span><span class="game-sub">' + esc(dateLabel(row.gameday)) + '</span></td>' +
         '<td class="number">' + esc(projectedScore(row)) + '</td>' +
-        '<td class="number">' + esc(modelMargin(row)) + '</td>' +
         '<td class="number">' + esc(marketSpread(row)) + '</td>' +
         '<td class="number strong">' + esc(spreadBetText(row)) + '</td>' +
-        '<td class="number">' + esc(signed(row.spread_edge, 1)) + '</td>' +
+        '<td class="number">' + esc(betEdgeText(row.spread_probability_edge, row.spread_status)) + '</td>' +
+        '<td class="number">' + esc(betEvText(row.spread_expected_value, row.spread_status)) + '</td>' +
         '<td>' + statusText(row.spread_status) + '</td>' +
         '<td class="number">' + esc(fmt(row.total_line, 1)) + '</td>' +
-        '<td class="number">' + esc(fmt(row.model_total, 1)) + '</td>' +
         '<td class="number strong">' + esc(totalBetText(row)) + '</td>' +
-        '<td class="number">' + esc(signed(row.total_edge, 1)) + '</td>' +
-        '<td class="number strong">' + esc(row.moneyline_pick || '—') + '</td>' +
-        '<td class="number">' + esc(odds(row.moneyline_price)) + '</td>' +
+        '<td class="number">' + esc(betEdgeText(row.total_probability_edge, row.total_status)) + '</td>' +
+        '<td class="number">' + esc(betEvText(row.total_expected_value, row.total_status)) + '</td>' +
+        '<td>' + statusText(row.total_status) + '</td>' +
         '</tr>';
     }).join('');
   }
@@ -353,11 +360,12 @@
         '<td><span class="game-main">' + esc(row.away_team + ' @ ' + row.home_team) + '</span><span class="game-sub">' + esc(dateLabel(row.gameday)) + '</span></td>' +
         '<td class="number">' + esc(finalScore(row)) + '</td>' +
         '<td class="number">' + esc(projectedScore(row)) + '</td>' +
+        '<td class="number">' + esc(marketSpread(row)) + '</td>' +
         '<td class="number' + resultClass(spreadGrade) + '">' + esc(spreadBetText(row)) + '</td>' +
-        '<td class="number">' + esc(signed(row.spread_edge, 1)) + '</td>' +
+        '<td class="number">' + esc(betEdgeText(row.spread_probability_edge, row.spread_status)) + '</td>' +
+        '<td class="number">' + esc(fmt(row.total_line, 1)) + '</td>' +
         '<td class="number' + resultClass(totalGrade) + '">' + esc(totalBetText(row)) + '</td>' +
-        '<td class="number">' + esc(signed(row.total_edge, 1)) + '</td>' +
-        '<td class="number' + resultClass(moneylineGrade) + '">' + esc((row.moneyline_pick || '—') + ' ' + odds(row.moneyline_price)) + '</td>' +
+        '<td class="number">' + esc(betEdgeText(row.total_probability_edge, row.total_status)) + '</td>' +
         '</tr>';
     }).join('');
   }
@@ -513,13 +521,15 @@
   function renderHistorySummary() {
     const spread = completedGradeStats(spreadResult);
     const total = completedGradeStats(totalResult);
-    const moneyline = completedGradeStats(moneylineResult);
     const props = propHistoryStats();
+    const spreadMode = String(
+      state.modelReport.market_strategy_validation?.spread?.production_mode || 'OFF'
+    ).toUpperCase();
 
     $('historySummary').innerHTML =
-      summaryCard('Spread', completedRecordText(spread), spread.decisions ? pct(spread.hitRate, 1) + ' hit · completed model games' : 'No completed model games') +
-      summaryCard('Total', completedRecordText(total), total.decisions ? pct(total.hitRate, 1) + ' hit · completed model games' : 'No completed model games') +
-      summaryCard('Moneyline', completedRecordText(moneyline), moneyline.decisions ? pct(moneyline.hitRate, 1) + ' hit · completed model games' : 'No completed model games') +
+      summaryCard('Spread Bets', completedRecordText(spread), spread.decisions ? pct(spread.hitRate, 1) + ' hit · approved bets only' : 'No completed spread bets') +
+      summaryCard('Total Bets', completedRecordText(total), total.decisions ? pct(total.hitRate, 1) + ' hit · approved bets only' : 'No completed total bets') +
+      summaryCard('Spread Mode', spreadMode, spreadMode === 'CAUTION' ? 'Higher live threshold active' : 'Current production state') +
       summaryCard('Player Props', props.decisions ? props.wins + '-' + props.losses : '0-0', props.decisions ? pct(props.hitRate, 1) + ' hit rate' : 'No settled locked props');
   }
 
@@ -637,7 +647,7 @@
 
     return '<div class="table-count"><strong>Completed Model Games</strong> · Green = correct, red = incorrect, gray = push.</div>' +
       '<div class="table-scroll"><table class="data-table">' +
-      '<thead><tr><th>Week</th><th>Game</th><th>Final Score</th><th>Projected Score</th><th>Spread Pick</th><th>Spread Edge</th><th>Total Pick</th><th>Total Edge</th><th>ML Pick</th></tr></thead>' +
+      '<thead><tr><th>Week</th><th>Game</th><th>Final Score</th><th>Projected Score</th><th>Market Spread</th><th>Spread Bet</th><th>Bet Edge</th><th>Market Total</th><th>Total Bet</th><th>Bet Edge</th></tr></thead>' +
       '<tbody>' +
       rows.map((row) => {
         const spreadGrade = spreadResult(row);
@@ -649,11 +659,12 @@
           '<td><span class="game-main">' + esc(row.away_team + ' @ ' + row.home_team) + '</span><span class="game-sub">' + esc(dateLabel(row.gameday)) + '</span></td>' +
           '<td class="number">' + esc(finalScore(row)) + '</td>' +
           '<td class="number">' + esc(projectedScore(row)) + '</td>' +
+          '<td class="number">' + esc(marketSpread(row)) + '</td>' +
           '<td class="number' + resultClass(spreadGrade) + '">' + esc(spreadBetText(row)) + '</td>' +
-          '<td class="number">' + esc(signed(row.spread_edge, 1)) + '</td>' +
+          '<td class="number">' + esc(betEdgeText(row.spread_probability_edge, row.spread_status)) + '</td>' +
+          '<td class="number">' + esc(fmt(row.total_line, 1)) + '</td>' +
           '<td class="number' + resultClass(totalGrade) + '">' + esc(totalBetText(row)) + '</td>' +
-          '<td class="number">' + esc(signed(row.total_edge, 1)) + '</td>' +
-          '<td class="number' + resultClass(moneylineGrade) + '">' + esc((row.moneyline_pick || '—') + ' ' + odds(row.moneyline_price)) + '</td>' +
+          '<td class="number">' + esc(betEdgeText(row.total_probability_edge, row.total_status)) + '</td>' +
           '</tr>';
       }).join('') +
       '</tbody></table></div>';
@@ -699,7 +710,7 @@
       (keys.length ? keys.map((key) => {
         const row = thresholds[key] || {};
         return '<tr>' +
-          '<td class="number">' + esc(key + '+ pts') + '</td>' +
+          '<td class="number">' + esc((Number(key) * 100).toFixed(1) + '%+') + '</td>' +
           '<td class="number">' + esc(row.bets || 0) + '</td>' +
           '<td class="number">' + esc((row.wins || 0) + '-' + (row.losses || 0)) + '</td>' +
           '<td class="number">' + esc(pct(row.win_rate, 1)) + '</td>' +

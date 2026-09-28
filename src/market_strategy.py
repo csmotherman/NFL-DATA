@@ -12,7 +12,7 @@ from sklearn.preprocessing import StandardScaler
 
 
 DEFAULT_PRICE = -110.0
-OUTER_SEASONS = [2022, 2023, 2024, 2025]
+OUTER_SEASONS = list(range(2018, 2026))
 EDGE_THRESHOLDS = [0.00, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.08, 0.10, 0.12, 0.15, 0.18, 0.20]
 SIDE_MODES = ["both", "positive", "negative"]
 # Reverse orientation remains useful as a diagnostic, but allowing production

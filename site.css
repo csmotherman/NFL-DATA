@@ -317,6 +317,10 @@ button {
   background: #f2f2f2;
 }
 
+.data-table tbody tr.bet-row td:first-child {
+  box-shadow: inset 3px 0 0 var(--black);
+}
+
 .game-main {
   display: block;
   font-weight: 700;

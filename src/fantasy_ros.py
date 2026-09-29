@@ -739,10 +739,18 @@ def project_current(
         ascending=[True, True, False],
     ).reset_index(drop=True)
 
-    # Schedule difficulty is team/position specific and is intentionally
-    # separate from player talent/usage.
+    # Schedule difficulty is team/position specific. Deduplicate the weekly
+    # schedule first so multiple fantasy-relevant players on one team do not
+    # multiply the game counts or distort the team SOS ranking.
+    team_week_matchups = (
+        weekly[
+            ["team", "position", "week", "opponent", "is_home", "matchup_index"]
+        ]
+        .drop_duplicates(["team", "position", "week"])
+        .copy()
+    )
     sos = (
-        weekly.groupby(["team", "position"], as_index=False)
+        team_week_matchups.groupby(["team", "position"], as_index=False)
         .agg(
             ros_games=("week", "nunique"),
             avg_matchup_index=("matchup_index", "mean"),
@@ -759,10 +767,7 @@ def project_current(
     )
 
     schedule_text = (
-        weekly[
-            ["team", "position", "week", "opponent", "is_home", "matchup_index"]
-        ]
-        .drop_duplicates()
+        team_week_matchups
         .sort_values(["team", "position", "week"])
         .groupby(["team", "position"])
         .apply(
@@ -795,7 +800,6 @@ def project_current(
             projected_ppr_w4_16=("projected_ppr", "sum"),
             projected_ppr_pg_w4_16=("projected_ppr", "mean"),
             ros_games=("week", "nunique"),
-            avg_matchup_index=("matchup_index", "mean"),
         )
     )
     rankings["fantasy_rank"] = (
@@ -803,10 +807,12 @@ def project_current(
         .rank(method="min", ascending=False)
         .astype(int)
     )
-    rankings["sos_rank"] = (
-        rankings.groupby("position")["avg_matchup_index"]
-        .rank(method="min", ascending=False)
-        .astype(int)
+    rankings = rankings.merge(
+        sos[
+            ["team", "position", "avg_matchup_index", "sos_rank"]
+        ],
+        on=["team", "position"],
+        how="left",
     )
 
     best_week = (

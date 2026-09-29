@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="description" content="NFL betting model dashboard with weekly game projections, player props, history and validation.">
+  <meta name="description" content="NFL betting picks, cover probabilities, model edges, player props and tracked results.">
   <title>NFL Betting Model</title>
   <link rel="stylesheet" href="site.css">
 </head>
@@ -26,7 +26,7 @@
       <div class="page-header">
         <div>
           <h1>This Week</h1>
-          <p>Spread decisions use the ATS classifier only. Totals remain separate and only appear when they pass validation.</p>
+          <p>BET = model-approved play. PASS = no wager. Cover % is the model's chance that the listed side covers the spread.</p>
         </div>
         <div class="week-label" id="weekLabel">—</div>
       </div>
@@ -37,7 +37,7 @@
         <div class="section-header">
           <div>
             <h2>Upcoming Games</h2>
-            <p>Only games without a final score are shown here.</p>
+            <p>Sort any column. Edge is the model's probability advantage over the sportsbook's break-even rate.</p>
           </div>
           <label class="filter">
             <span>Filter</span>
@@ -56,16 +56,16 @@
               <tr>
                 <th>Game</th>
                 <th>Market Spread</th>
-                <th>ATS Side</th>
-                <th>Cover Prob. %</th>
-                <th>ATS Edge</th>
+                <th>Model Side</th>
+                <th>Cover %</th>
+                <th>Edge</th>
                 <th>Est. EV</th>
-                <th>Status</th>
+                <th>Play</th>
                 <th>Market Total</th>
-                <th>Total Bet</th>
-                <th>Bet Edge</th>
+                <th>Total Pick</th>
+                <th>Edge</th>
                 <th>Est. EV</th>
-                <th>Status</th>
+                <th>Play</th>
               </tr>
             </thead>
             <tbody id="upcomingBody"></tbody>
@@ -89,13 +89,13 @@
                 <th>Game</th>
                 <th>Final Score</th>
                 <th>Market Spread</th>
-                <th>ATS Side</th>
-                <th>Cover Prob. %</th>
-                <th>ATS Edge</th>
-                <th>Status</th>
+                <th>Model Side</th>
+                <th>Cover %</th>
+                <th>Edge</th>
+                <th>Play</th>
                 <th>Market Total</th>
-                <th>Total Bet</th>
-                <th>Bet Edge</th>
+                <th>Total Pick</th>
+                <th>Edge</th>
               </tr>
             </thead>
             <tbody id="completedBody"></tbody>
@@ -147,7 +147,7 @@
       <div class="page-header">
         <div>
           <h1>Bet History</h1>
-          <p>Completed model results are shown here. Audited forward bets remain labeled separately.</p>
+          <p>See how model-approved bets performed. Live tracked bets are kept separate from historical backtests.</p>
         </div>
       </div>
 
@@ -172,8 +172,8 @@
     <section class="page" id="page-model">
       <div class="page-header">
         <div>
-          <h1>Model</h1>
-          <p>Historical accuracy and walk-forward validation.</p>
+          <h1>Model Performance</h1>
+          <p>How the model performed on games it was not trained on.</p>
         </div>
       </div>
 
@@ -182,8 +182,8 @@
       <section class="content-section">
         <div class="section-header">
           <div>
-            <h2>ATS Classifier Validation</h2>
-            <p>Walk-forward out-of-sample ATS betting performance by probability-edge threshold.</p>
+            <h2>Spread Backtest</h2>
+            <p>Historical spread performance on unseen games at different minimum edge levels.</p>
           </div>
         </div>
         <div class="table-scroll" id="spreadValidation"></div>
@@ -192,8 +192,8 @@
       <section class="content-section">
         <div class="section-header">
           <div>
-            <h2>Total Validation</h2>
-            <p>Walk-forward out-of-sample total performance by model edge threshold.</p>
+            <h2>Totals Backtest</h2>
+            <p>Historical Over/Under performance on unseen games at different minimum edge levels.</p>
           </div>
         </div>
         <div class="table-scroll" id="totalValidation"></div>
@@ -202,8 +202,8 @@
       <section class="content-section">
         <div class="section-header">
           <div>
-            <h2>Player Projection Validation</h2>
-            <p>Model error compared with the recent-form baseline.</p>
+            <h2>Player Projection Accuracy</h2>
+            <p>Average projection error compared with a simple recent-form baseline.</p>
           </div>
         </div>
         <div class="table-scroll">
@@ -211,10 +211,10 @@
             <thead>
               <tr>
                 <th>Market</th>
-                <th>Model MAE</th>
-                <th>Baseline MAE</th>
+                <th>Model Avg Error</th>
+                <th>Baseline Avg Error</th>
                 <th>Difference</th>
-                <th>OOF Rows</th>
+                <th>Games Tested</th>
               </tr>
             </thead>
             <tbody id="playerValidationBody"></tbody>
@@ -223,7 +223,7 @@
       </section>
 
       <div class="notice">
-        <strong>Forward record rule:</strong> historical backtests stay on this page. They are never mixed into the live Bet History record.
+        <strong>Tracked record:</strong> backtests stay on this page and are never mixed into bets that were actually posted before kickoff.
       </div>
     </section>
   </main>

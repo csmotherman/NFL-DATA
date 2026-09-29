@@ -45,6 +45,7 @@ from market_strategy import (
     fit_final_market_model,
     predict_current_market,
     spread_bet_audit_for_season,
+    total_bet_audit_for_season,
     walk_forward_strategy_validation,
 )
 
@@ -1128,6 +1129,30 @@ def main() -> None:
         "pushes": int((audit_2025.get("result") == "PUSH").sum()) if len(audit_2025) else 0,
         "profit_units": round(float(audit_2025.get("unit_profit", pd.Series(dtype=float)).sum()), 3),
         "method": "season-2025 classifier fit on seasons <2025; strategy frozen through 2021; outcomes graded only after recommendations",
+    }
+
+    total_audit_2025, total_audit_2025_strategy = total_bet_audit_for_season(
+        dataset,
+        feature_cols,
+        target_season=2025,
+        discovery_end_season=2021,
+    )
+    total_audit_2025.to_csv(
+        output_dir / "totals_2025_no_leakage_bets.csv",
+        index=False,
+    )
+    total_profit_2025 = float(
+        total_audit_2025.get("unit_profit", pd.Series(dtype=float)).sum()
+    ) if len(total_audit_2025) else 0.0
+    report["totals_2025_no_leakage_audit"] = {
+        "strategy": total_audit_2025_strategy,
+        "bets": int(len(total_audit_2025)),
+        "wins": int((total_audit_2025.get("result") == "WIN").sum()) if len(total_audit_2025) else 0,
+        "losses": int((total_audit_2025.get("result") == "LOSS").sum()) if len(total_audit_2025) else 0,
+        "pushes": int((total_audit_2025.get("result") == "PUSH").sum()) if len(total_audit_2025) else 0,
+        "profit_units": round(total_profit_2025, 3),
+        "roi": round(total_profit_2025 / len(total_audit_2025), 4) if len(total_audit_2025) else None,
+        "method": "season-2025 total classifier fit on seasons <2025; strategy frozen through 2021; outcomes graded only after recommendations",
     }
 
     validated_spread_threshold = (

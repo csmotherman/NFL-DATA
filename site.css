@@ -272,6 +272,24 @@ button {
   font-weight: 700;
   text-transform: uppercase;
   white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+
+.data-table th::after {
+  content: " ↕";
+  color: var(--gray-3);
+  font-size: 8px;
+}
+
+.data-table th[aria-sort="ascending"]::after {
+  content: " ↑";
+  color: var(--black);
+}
+
+.data-table th[aria-sort="descending"]::after {
+  content: " ↓";
+  color: var(--black);
 }
 
 .data-table td {

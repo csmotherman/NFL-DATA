@@ -192,6 +192,7 @@
 
   function statusText(value) {
     const status = String(value || '—').toUpperCase();
+    if (status === 'WATCH') return '<span class="status-text muted">NO BET</span>';
     const muted = status === 'LEAN' || status === 'NO BET' || status === 'NO LINE' ||
       status === '—' || status === 'NOT_LISTED' || status === 'NOT LISTED';
     return '<span class="status-text' + (muted ? ' muted' : '') + '">' + esc(status.replace(/_/g, ' ')) + '</span>';
@@ -233,15 +234,16 @@
     const spreadSignals = upcoming.filter((row) => isApprovedBet(row.spread_status)).length;
     const totalSignals = upcoming.filter((row) => isApprovedBet(row.total_status)).length;
 
-    const maxEdge = upcoming.reduce((best, row) => {
-      return Math.max(best, Math.abs(num(row.spread_edge) || 0), Math.abs(num(row.total_edge) || 0));
+    const maxAtsEdge = upcoming.reduce((best, row) => {
+      const edge = num(row.spread_probability_edge);
+      return edge === null ? best : Math.max(best, edge);
     }, 0);
 
     $('weekSummary').innerHTML =
       summaryCard('Upcoming', String(upcoming.length), completed.length + ' completed in current file') +
-      summaryCard('Spread Bets', String(spreadSignals), 'Validated wagers only') +
-      summaryCard('Total Bets', String(totalSignals), 'Validated wagers only') +
-      summaryCard('Largest Edge', maxEdge ? maxEdge.toFixed(1) + ' pts' : '—', 'Current upcoming games');
+      summaryCard('ATS Bets', String(spreadSignals), 'ATS classifier approved only') +
+      summaryCard('Total Bets', String(totalSignals), 'Validated totals only') +
+      summaryCard('Largest ATS Edge', maxAtsEdge ? pct(maxAtsEdge, 1) : '—', 'Probability edge vs break-even');
 
     if (state.board.length) {
       $('weekLabel').textContent = state.board[0].season + ' · WEEK ' + Number(state.board[0].week);
@@ -273,9 +275,9 @@
     $('upcomingBody').innerHTML = rows.map((row) => {
       return '<tr>' +
         '<td><span class="game-main">' + esc(row.away_team + ' @ ' + row.home_team) + '</span><span class="game-sub">' + esc(dateLabel(row.gameday)) + '</span></td>' +
-        '<td class="number">' + esc(projectedScore(row)) + '</td>' +
         '<td class="number">' + esc(marketSpread(row)) + '</td>' +
         '<td class="number strong">' + esc(spreadBetText(row)) + '</td>' +
+        '<td class="number">' + esc(isApprovedBet(row.spread_status) ? pct(row.spread_probability, 1) : '—') + '</td>' +
         '<td class="number">' + esc(betEdgeText(row.spread_probability_edge, row.spread_status)) + '</td>' +
         '<td class="number">' + esc(betEvText(row.spread_expected_value, row.spread_status)) + '</td>' +
         '<td>' + statusText(row.spread_status) + '</td>' +
@@ -359,9 +361,9 @@
       return '<tr>' +
         '<td><span class="game-main">' + esc(row.away_team + ' @ ' + row.home_team) + '</span><span class="game-sub">' + esc(dateLabel(row.gameday)) + '</span></td>' +
         '<td class="number">' + esc(finalScore(row)) + '</td>' +
-        '<td class="number">' + esc(projectedScore(row)) + '</td>' +
         '<td class="number">' + esc(marketSpread(row)) + '</td>' +
         '<td class="number' + resultClass(spreadGrade) + '">' + esc(spreadBetText(row)) + '</td>' +
+        '<td class="number">' + esc(isApprovedBet(row.spread_status) ? pct(row.spread_probability, 1) : '—') + '</td>' +
         '<td class="number">' + esc(betEdgeText(row.spread_probability_edge, row.spread_status)) + '</td>' +
         '<td class="number">' + esc(fmt(row.total_line, 1)) + '</td>' +
         '<td class="number' + resultClass(totalGrade) + '">' + esc(totalBetText(row)) + '</td>' +
@@ -645,7 +647,7 @@
 
     return '<div class="table-count"><strong>Completed Model Games</strong> · Green = correct, red = incorrect, gray = push.</div>' +
       '<div class="table-scroll"><table class="data-table">' +
-      '<thead><tr><th>Week</th><th>Game</th><th>Final Score</th><th>Projected Score</th><th>Market Spread</th><th>Spread Bet</th><th>Bet Edge</th><th>Market Total</th><th>Total Bet</th><th>Bet Edge</th></tr></thead>' +
+      '<thead><tr><th>Week</th><th>Game</th><th>Final Score</th><th>Market Spread</th><th>ATS Bet</th><th>Cover Prob.</th><th>ATS Edge</th><th>Market Total</th><th>Total Bet</th><th>Bet Edge</th></tr></thead>' +
       '<tbody>' +
       rows.map((row) => {
         const spreadGrade = spreadResult(row);
@@ -656,9 +658,9 @@
           '<td class="number">' + esc(row.season + ' W' + Number(row.week)) + '</td>' +
           '<td><span class="game-main">' + esc(row.away_team + ' @ ' + row.home_team) + '</span><span class="game-sub">' + esc(dateLabel(row.gameday)) + '</span></td>' +
           '<td class="number">' + esc(finalScore(row)) + '</td>' +
-          '<td class="number">' + esc(projectedScore(row)) + '</td>' +
           '<td class="number">' + esc(marketSpread(row)) + '</td>' +
           '<td class="number' + resultClass(spreadGrade) + '">' + esc(spreadBetText(row)) + '</td>' +
+          '<td class="number">' + esc(isApprovedBet(row.spread_status) ? pct(row.spread_probability, 1) : '—') + '</td>' +
           '<td class="number">' + esc(betEdgeText(row.spread_probability_edge, row.spread_status)) + '</td>' +
           '<td class="number">' + esc(fmt(row.total_line, 1)) + '</td>' +
           '<td class="number' + resultClass(totalGrade) + '">' + esc(totalBetText(row)) + '</td>' +

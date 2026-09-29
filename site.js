@@ -192,9 +192,21 @@
 
   function statusText(value) {
     const status = String(value || '—').toUpperCase();
-    if (status === 'WATCH') return '<span class="status-text muted">NO BET</span>';
-    const muted = status === 'LEAN' || status === 'NO BET' || status === 'NO LINE' ||
-      status === '—' || status === 'NOT_LISTED' || status === 'NOT LISTED';
+
+    if (status === 'VALIDATED' || status === 'CAUTION') {
+      return '<span class="status-text bet">BET</span>';
+    }
+    if (status === 'WATCH' || status === 'NO BET' || status === 'LEAN' || status === 'OFF') {
+      return '<span class="status-text pass">PASS</span>';
+    }
+    if (status === 'NO LINE') {
+      return '<span class="status-text muted">NO LINE</span>';
+    }
+    if (status === 'NOT_LISTED' || status === 'NOT LISTED') {
+      return '<span class="status-text muted">OFF BOARD</span>';
+    }
+
+    const muted = status === '—';
     return '<span class="status-text' + (muted ? ' muted' : '') + '">' + esc(status.replace(/_/g, ' ')) + '</span>';
   }
 
@@ -203,7 +215,7 @@
   }
 
   function spreadBetText(row) {
-    if (!isApprovedBet(row.spread_status) || !row.spread_pick) return 'NO BET';
+    if (!isApprovedBet(row.spread_status) || !row.spread_pick) return '—';
     return row.spread_pick + ' ' + signed(row.spread_pick_line, 1);
   }
 
@@ -222,7 +234,7 @@
   }
 
   function totalBetText(row) {
-    if (!isApprovedBet(row.total_status) || !row.total_pick) return 'NO BET';
+    if (!isApprovedBet(row.total_status) || !row.total_pick) return '—';
     return row.total_pick + ' ' + fmt(row.total_line, 1);
   }
 
@@ -254,10 +266,10 @@
     }, 0);
 
     $('weekSummary').innerHTML =
-      summaryCard('Upcoming', String(upcoming.length), completed.length + ' completed in current file') +
-      summaryCard('ATS Bets', String(spreadSignals), 'ATS classifier approved only') +
-      summaryCard('Total Bets', String(totalSignals), 'Validated totals only') +
-      summaryCard('Largest ATS Edge', maxAtsEdge ? pct(maxAtsEdge, 1) : '—', 'Probability edge vs break-even');
+      summaryCard('Games', String(upcoming.length), 'Upcoming this week') +
+      summaryCard('Spread Bets', String(spreadSignals), 'Model-approved plays') +
+      summaryCard('Total Bets', String(totalSignals), 'Model-approved plays') +
+      summaryCard('Best Spread Edge', maxAtsEdge ? pct(maxAtsEdge, 1) : '—', 'Above sportsbook break-even');
 
     if (state.board.length) {
       $('weekLabel').textContent = state.board[0].season + ' · WEEK ' + Number(state.board[0].week);
@@ -539,15 +551,16 @@
     const spread = completedGradeStats(spreadResult);
     const total = completedGradeStats(totalResult);
     const props = propHistoryStats();
-    const spreadMode = String(
-      state.modelReport.market_strategy_validation?.spread?.production_mode || 'OFF'
-    ).toUpperCase();
+    const gameWins = spread.wins + total.wins;
+    const gameLosses = spread.losses + total.losses;
+    const gameDecisions = gameWins + gameLosses;
+    const gameHitRate = gameDecisions ? gameWins / gameDecisions : null;
 
     $('historySummary').innerHTML =
-      summaryCard('Spread Bets', completedRecordText(spread), spread.decisions ? pct(spread.hitRate, 1) + ' hit · approved bets only' : 'No completed spread bets') +
-      summaryCard('Total Bets', completedRecordText(total), total.decisions ? pct(total.hitRate, 1) + ' hit · approved bets only' : 'No completed total bets') +
-      summaryCard('Spread Mode', spreadMode, spreadMode === 'CAUTION' ? 'Higher live threshold active' : 'Current production state') +
-      summaryCard('Player Props', props.decisions ? props.wins + '-' + props.losses : '0-0', props.decisions ? pct(props.hitRate, 1) + ' hit rate' : 'No settled locked props');
+      summaryCard('Spread Record', completedRecordText(spread), spread.decisions ? pct(spread.hitRate, 1) + ' win rate' : 'No settled spread bets') +
+      summaryCard('Total Record', completedRecordText(total), total.decisions ? pct(total.hitRate, 1) + ' win rate' : 'No settled total bets') +
+      summaryCard('All Game Bets', gameDecisions ? gameWins + '-' + gameLosses : '0-0', gameDecisions ? pct(gameHitRate, 1) + ' win rate' : 'No settled game bets') +
+      summaryCard('Player Props', props.decisions ? props.wins + '-' + props.losses : '0-0', props.decisions ? pct(props.hitRate, 1) + ' win rate' : 'No settled player props');
   }
 
   function historyWeeks(rows) {
@@ -662,7 +675,7 @@
 
     return '<div class="table-count"><strong>Completed Model Games</strong> · Green = correct, red = incorrect, gray = push.</div>' +
       '<div class="table-scroll"><table class="data-table">' +
-      '<thead><tr><th>Week</th><th>Game</th><th>Final Score</th><th>Market Spread</th><th>ATS Side</th><th>Cover Prob. %</th><th>ATS Edge</th><th>Status</th><th>Market Total</th><th>Total Bet</th><th>Bet Edge</th></tr></thead>' +
+      '<thead><tr><th>Week</th><th>Game</th><th>Final Score</th><th>Market Spread</th><th>Model Side</th><th>Cover %</th><th>Edge</th><th>Play</th><th>Market Total</th><th>Total Pick</th><th>Edge</th></tr></thead>' +
       '<tbody>' +
       rows.map((row) => {
         const spreadGrade = spreadResult(row);
@@ -710,10 +723,10 @@
     const independent = state.modelReport.independent_model || {};
 
     $('modelSummary').innerHTML =
-      summaryCard('Holdout Season', String(state.modelReport.holdout_season || '—'), 'Latest completed holdout') +
-      summaryCard('Winner Accuracy', pct(independent.winner_accuracy, 1), 'Independent model') +
-      summaryCard('Margin MAE', fmt(independent.margin_mae, 2), 'Points') +
-      summaryCard('Total MAE', fmt(independent.total_mae, 2), 'Points');
+      summaryCard('Test Season', String(state.modelReport.holdout_season || '—'), 'Held out from model training') +
+      summaryCard('Winner Accuracy', pct(independent.winner_accuracy, 1), 'Straight-up winner') +
+      summaryCard('Avg Margin Error', fmt(independent.margin_mae, 2), 'Points per game') +
+      summaryCard('Avg Total Error', fmt(independent.total_mae, 2), 'Points per game');
   }
 
   function validationTable(data) {
@@ -721,19 +734,22 @@
     const keys = Object.keys(thresholds).sort((a, b) => Number(a) - Number(b));
 
     return '<table class="data-table">' +
-      '<thead><tr><th>Edge Threshold</th><th>Bets</th><th>Record</th><th>Hit Rate</th><th>ROI @ -110</th><th>Status</th></tr></thead>' +
+      '<thead><tr><th>Minimum Edge</th><th>Bets</th><th>Record</th><th>Win Rate</th><th>ROI @ -110</th><th>Backtest</th></tr></thead>' +
       '<tbody>' +
       (keys.length ? keys.map((key) => {
         const row = thresholds[key] || {};
+        const label = row.stable
+          ? '<span class="status-text bet">PASSED</span>'
+          : '<span class="status-text pass">NOT PROVEN</span>';
         return '<tr>' +
           '<td class="number">' + esc((Number(key) * 100).toFixed(1) + '%+') + '</td>' +
           '<td class="number">' + esc(row.bets || 0) + '</td>' +
           '<td class="number">' + esc((row.wins || 0) + '-' + (row.losses || 0)) + '</td>' +
           '<td class="number">' + esc(pct(row.win_rate, 1)) + '</td>' +
           '<td class="number">' + esc(pct(row.roi_at_minus_110, 1)) + '</td>' +
-          '<td>' + statusText(row.stable ? 'VALIDATED' : 'WATCH') + '</td>' +
+          '<td>' + label + '</td>' +
           '</tr>';
-      }).join('') : '<tr><td colspan="6">No walk-forward data available.</td></tr>') +
+      }).join('') : '<tr><td colspan="6">No historical test data available.</td></tr>') +
       '</tbody></table>';
   }
 
@@ -936,7 +952,7 @@
       : '';
 
     $('loadState').classList.add('ok');
-    $('loadState').textContent = 'Data loaded';
+    $('loadState').textContent = 'Updated';
   }
 
   bindEvents();

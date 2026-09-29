@@ -1501,6 +1501,163 @@ def walk_forward_strategy_validation(
     return output
 
 
+def spread_bet_audit_for_season(
+    dataset: pd.DataFrame,
+    base_features: list[str],
+    target_season: int,
+    discovery_end_season: int = 2021,
+) -> tuple[pd.DataFrame, dict]:
+    """
+    Produce a no-leakage historical ATS bet ledger for one season.
+
+    - Strategy is frozen using OOF seasons through discovery_end_season.
+    - The target-season classifier is trained only on seasons before target_season.
+    - Target-season pregame features remain shifted and may incorporate only
+      games played before each target game.
+    - Pushes are predicted first and graded afterward rather than disappearing
+      from the candidate ledger.
+    """
+    prior_oof = generate_oof_predictions(
+        dataset,
+        base_features,
+        "spread",
+        max_season_exclusive=target_season,
+    )
+    discovery = prior_oof[
+        prior_oof["season"] <= discovery_end_season
+    ].copy()
+    strategy = select_strategy(discovery, "spread")
+
+    train = market_rows(dataset, "spread")
+    train = train[train["season"] < target_season].copy()
+
+    target = dataset[
+        dataset["season"].eq(target_season)
+        & numeric(dataset["spread_line"]).notna()
+        & numeric(dataset["target_margin"]).notna()
+    ].copy()
+
+    if (
+        target.empty
+        or len(train) < 500
+        or train["market_target"].nunique() < 2
+        or strategy.get("side_mode") == "none"
+    ):
+        return pd.DataFrame(), strategy
+
+    model = MarketClassifier().fit(
+        engineered_features(train, base_features),
+        train["market_target"],
+        sample_weight=training_weights(train),
+    )
+    probability = model.predict_proba(
+        engineered_features(target, base_features)
+    )
+
+    target["raw_probability_positive"] = probability
+    target = annotate_probabilities(
+        target,
+        probability,
+        "spread",
+        orientation=strategy.get("orientation", "normal"),
+    )
+
+    threshold = float(strategy.get("threshold", 1.0))
+    side_mode = strategy.get("side_mode", "none")
+    segment = strategy.get("segment", "all")
+
+    mask = numeric(target["market_probability_edge"]).ge(threshold)
+    mask &= segment_mask(target, "spread", segment)
+
+    if side_mode == "positive":
+        mask &= numeric(target["market_side"]).eq(1)
+    elif side_mode == "negative":
+        mask &= numeric(target["market_side"]).eq(-1)
+    elif side_mode == "none":
+        mask &= False
+
+    bets = target[mask].copy()
+    if bets.empty:
+        return bets, strategy
+
+    side = numeric(bets["market_side"]).astype(int)
+    bets["ats_side"] = np.where(
+        side.eq(1),
+        bets["home_team"],
+        bets["away_team"],
+    )
+    bets["ats_line"] = np.where(
+        side.eq(1),
+        -numeric(bets["spread_line"]),
+        numeric(bets["spread_line"]),
+    )
+    bets["cover_probability"] = numeric(
+        bets["market_side_probability"]
+    )
+    bets["break_even_probability"] = (
+        bets["cover_probability"]
+        - numeric(bets["market_probability_edge"])
+    )
+    bets["ats_edge"] = numeric(
+        bets["market_probability_edge"]
+    )
+    bets["price"] = numeric(bets["market_price"])
+
+    payouts = np.array([
+        american_profit(value)
+        for value in numeric(bets["price"])
+    ])
+
+    actual_delta = (
+        numeric(bets["target_margin"])
+        - numeric(bets["spread_line"])
+    )
+    home_cover = actual_delta > 0
+    away_cover = actual_delta < 0
+    push = actual_delta == 0
+
+    win = np.where(
+        side.eq(1),
+        home_cover,
+        away_cover,
+    )
+    bets["result"] = np.where(
+        push,
+        "PUSH",
+        np.where(win, "WIN", "LOSS"),
+    )
+    bets["unit_profit"] = np.where(
+        push,
+        0.0,
+        np.where(win, payouts, -1.0),
+    )
+
+    home_score = numeric(bets.get("home_score", np.nan))
+    away_score = numeric(bets.get("away_score", np.nan))
+    bets["final_score"] = (
+        bets["away_team"].astype(str)
+        + " "
+        + away_score.round(0).astype("Int64").astype(str)
+        + " - "
+        + bets["home_team"].astype(str)
+        + " "
+        + home_score.round(0).astype("Int64").astype(str)
+    )
+
+    keep = [
+        "season", "week", "gameday", "game_id",
+        "away_team", "home_team", "final_score",
+        "spread_line", "ats_side", "ats_line",
+        "cover_probability", "break_even_probability", "ats_edge",
+        "price", "result", "unit_profit",
+    ]
+    keep = [column for column in keep if column in bets.columns]
+
+    return bets[keep].sort_values(
+        ["week", "gameday", "game_id"]
+    ).reset_index(drop=True), strategy
+
+
 def fit_final_market_model(
     dataset: pd.DataFrame,
     base_features: list[str],

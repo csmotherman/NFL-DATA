@@ -1,0 +1,114 @@
+{
+  "generated_at_utc": "2026-09-29T02:51:45+00:00",
+  "season": 2026,
+  "snapshot_weeks": [
+    1,
+    3
+  ],
+  "forecast_weeks": [
+    4,
+    16
+  ],
+  "training_start_season": 2018,
+  "validation": {
+    "RB": {
+      "status": "ok",
+      "folds": [
+        {
+          "season": 2022,
+          "rows": 912,
+          "players": 76,
+          "model_mae": 6.211,
+          "baseline_mae": 6.758,
+          "weekly_rank_corr": 0.3865,
+          "ros_rank_corr": 0.5712
+        },
+        {
+          "season": 2023,
+          "rows": 936,
+          "players": 78,
+          "model_mae": 5.53,
+          "baseline_mae": 5.691,
+          "weekly_rank_corr": 0.483,
+          "ros_rank_corr": 0.6905
+        },
+        {
+          "season": 2024,
+          "rows": 912,
+          "players": 76,
+          "model_mae": 5.736,
+          "baseline_mae": 6.058,
+          "weekly_rank_corr": 0.486,
+          "ros_rank_corr": 0.6767
+        },
+        {
+          "season": 2025,
+          "rows": 888,
+          "players": 74,
+          "model_mae": 5.862,
+          "baseline_mae": 5.965,
+          "weekly_rank_corr": 0.4863,
+          "ros_rank_corr": 0.6542
+        }
+      ],
+      "rows": 3648,
+      "model_mae": 5.833,
+      "baseline_mae": 6.116,
+      "model_beats_baseline": true
+    },
+    "WR": {
+      "status": "ok",
+      "folds": [
+        {
+          "season": 2022,
+          "rows": 1428,
+          "players": 119,
+          "model_mae": 5.858,
+          "baseline_mae": 6.386,
+          "weekly_rank_corr": 0.4307,
+          "ros_rank_corr": 0.6383
+        },
+        {
+          "season": 2023,
+          "rows": 1368,
+          "players": 114,
+          "model_mae": 5.441,
+          "baseline_mae": 6.119,
+          "weekly_rank_corr": 0.4655,
+          "ros_rank_corr": 0.7137
+        },
+        {
+          "season": 2024,
+          "rows": 1344,
+          "players": 112,
+          "model_mae": 5.837,
+          "baseline_mae": 6.185,
+          "weekly_rank_corr": 0.3518,
+          "ros_rank_corr": 0.6205
+        },
+        {
+          "season": 2025,
+          "rows": 1332,
+          "players": 111,
+          "model_mae": 5.704,
+          "baseline_mae": 6.267,
+          "weekly_rank_corr": 0.3584,
+          "ros_rank_corr": 0.5489
+        }
+      ],
+      "rows": 5472,
+      "model_mae": 5.711,
+      "baseline_mae": 6.241,
+      "model_beats_baseline": true
+    }
+  },
+  "sos_definition": "Weeks 4-16 opponents ranked by RB/WR PPR allowed in Weeks 1-3, shrunk 50% toward the position league average after a three-game sample. Higher matchup index = easier fantasy matchup.",
+  "notes": [
+    "Current-season player/team/defense features stop after Week 3.",
+    "Historical training seasons are built using the same Week-3 snapshot rule.",
+    "Future schedule is known information; future game results are never model features.",
+    "Weekly targets are PPR points, with zero points when a snapshot player does not record stats in a scheduled team game.",
+    "No route-run or snap-count feature is currently available in the repository.",
+    "Projections assume the player's Week-3 team/role is the best available representation of rest-of-season opportunity."
+  ]
+}

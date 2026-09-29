@@ -26,7 +26,7 @@
       <div class="page-header">
         <div>
           <h1>This Week</h1>
-          <p>Projected scores for context; betting columns show only market-qualified spread and total wagers.</p>
+          <p>Spread decisions use the ATS classifier only. Totals remain separate and only appear when they pass validation.</p>
         </div>
         <div class="week-label" id="weekLabel">—</div>
       </div>
@@ -55,10 +55,10 @@
             <thead>
               <tr>
                 <th>Game</th>
-                <th>Projected Score</th>
                 <th>Market Spread</th>
-                <th>Spread Bet</th>
-                <th>Bet Edge</th>
+                <th>ATS Bet</th>
+                <th>Cover Prob.</th>
+                <th>ATS Edge</th>
                 <th>Est. EV</th>
                 <th>Status</th>
                 <th>Market Total</th>
@@ -88,10 +88,10 @@
               <tr>
                 <th>Game</th>
                 <th>Final Score</th>
-                <th>Projected Score</th>
                 <th>Market Spread</th>
-                <th>Spread Bet</th>
-                <th>Bet Edge</th>
+                <th>ATS Bet</th>
+                <th>Cover Prob.</th>
+                <th>ATS Edge</th>
                 <th>Market Total</th>
                 <th>Total Bet</th>
                 <th>Bet Edge</th>
@@ -181,8 +181,8 @@
       <section class="content-section">
         <div class="section-header">
           <div>
-            <h2>Spread Validation</h2>
-            <p>Walk-forward out-of-sample spread performance by model edge threshold.</p>
+            <h2>ATS Classifier Validation</h2>
+            <p>Walk-forward out-of-sample ATS betting performance by probability-edge threshold.</p>
           </div>
         </div>
         <div class="table-scroll" id="spreadValidation"></div>

@@ -9281,7 +9281,7 @@
     "roi": 0.0163,
     "method": "season-2025 total classifier fit on seasons <2025; strategy frozen through 2021; outcomes graded only after recommendations"
   },
-  "generated_at_utc": "2026-09-29T02:50:42Z",
+  "generated_at_utc": "2026-09-29T03:00:30Z",
   "training_start_season": 2014,
   "current_season": 2026,
   "target_week": 4,

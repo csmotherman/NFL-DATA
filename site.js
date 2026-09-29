@@ -260,10 +260,12 @@
     const spreadSignals = upcoming.filter((row) => isApprovedBet(row.spread_status)).length;
     const totalSignals = upcoming.filter((row) => isApprovedBet(row.total_status)).length;
 
-    const maxAtsEdge = upcoming.reduce((best, row) => {
-      const edge = num(row.spread_probability_edge);
-      return edge === null ? best : Math.max(best, edge);
-    }, 0);
+    const maxAtsEdge = upcoming
+      .filter((row) => isApprovedBet(row.spread_status))
+      .reduce((best, row) => {
+        const edge = num(row.spread_probability_edge);
+        return edge === null ? best : Math.max(best, edge);
+      }, 0);
 
     $('weekSummary').innerHTML =
       summaryCard('Games', String(upcoming.length), 'Upcoming this week') +
@@ -291,7 +293,17 @@
       rows = rows.filter((row) => isApprovedBet(row.total_status));
     }
 
-    return rows.sort((a, b) => String(a.gameday).localeCompare(String(b.gameday)));
+    return rows.sort((a, b) => {
+      const aBet = isApprovedBet(a.spread_status) || isApprovedBet(a.total_status);
+      const bBet = isApprovedBet(b.spread_status) || isApprovedBet(b.total_status);
+      if (aBet !== bBet) return aBet ? -1 : 1;
+
+      const aEdge = num(a.spread_probability_edge) ?? -Infinity;
+      const bEdge = num(b.spread_probability_edge) ?? -Infinity;
+      if (aEdge !== bEdge) return bEdge - aEdge;
+
+      return String(a.gameday).localeCompare(String(b.gameday));
+    });
   }
 
   function renderUpcoming() {
@@ -299,7 +311,8 @@
 
     $('upcomingEmpty').hidden = rows.length > 0;
     $('upcomingBody').innerHTML = rows.map((row) => {
-      return '<tr>' +
+      const recommended = isApprovedBet(row.spread_status) || isApprovedBet(row.total_status);
+      return '<tr' + (recommended ? ' class="bet-row"' : '') + '>' +
         '<td data-sort-value="' + esc((row.gameday || '') + ' ' + row.away_team + ' ' + row.home_team) + '"><span class="game-main">' + esc(row.away_team + ' @ ' + row.home_team) + '</span><span class="game-sub">' + esc(dateLabel(row.gameday)) + '</span></td>' +
         '<td class="number" data-sort-value="' + esc(row.spread_line || '') + '">' + esc(marketSpread(row)) + '</td>' +
         '<td class="number strong">' + esc(atsSideText(row)) + '</td>' +

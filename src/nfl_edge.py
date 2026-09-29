@@ -997,6 +997,7 @@ def build_candidates(
             "model_home_margin": r["model_home_margin"],
             "market_home_margin": r.get("spread_line", np.nan),
             "spread_edge": r.get("spread_edge", np.nan),
+            "spread_candidate_side": r.get("spread_candidate_side", ""),
             "spread_pick": r.get("spread_pick", ""),
             "spread_probability": r.get("spread_probability", np.nan),
             "spread_probability_edge": r.get(
@@ -1193,7 +1194,7 @@ def main() -> None:
         "season", "week", "gameday", "game_id",
         "away_team", "home_team",
         "independent_home_margin", "model_home_margin", "spread_line", "spread_edge",
-        "spread_pick", "spread_probability", "spread_probability_edge",
+        "spread_candidate_side", "spread_pick", "spread_probability", "spread_probability_edge",
         "spread_expected_value", "spread_market_price", "spread_status",
         "independent_total", "model_total", "total_line", "total_edge",
         "total_candidate_side", "total_pick", "total_probability", "total_probability_edge",

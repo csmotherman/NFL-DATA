@@ -9128,10 +9128,10 @@
       "validated_threshold": null
     }
   },
-  "generated_at_utc": "2026-09-28T19:46:13Z",
+  "generated_at_utc": "2026-09-29T01:15:55Z",
   "training_start_season": 2014,
   "current_season": 2026,
-  "target_week": 3,
+  "target_week": 4,
   "rolling_games": 8,
   "min_rolling_games": 3,
   "historical_training_games_final_fit": 2982,

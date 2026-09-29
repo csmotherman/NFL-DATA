@@ -44,6 +44,7 @@ from sklearn.preprocessing import StandardScaler
 from market_strategy import (
     fit_final_market_model,
     predict_current_market,
+    spread_bet_audit_for_season,
     walk_forward_strategy_validation,
 )
 
@@ -1105,6 +1106,29 @@ def main() -> None:
     # Preserve this key for the website while changing the underlying method
     # from residual-MAE thresholds to probability/price strategy validation.
     report["walk_forward_market_validation"] = market_validation
+
+    # Explicit no-leakage audit of the full 2025 ATS season. The classifier
+    # for 2025 is trained only on seasons before 2025, while the betting policy
+    # is frozen from discovery seasons through 2021.
+    audit_2025, audit_2025_strategy = spread_bet_audit_for_season(
+        dataset,
+        feature_cols,
+        target_season=2025,
+        discovery_end_season=2021,
+    )
+    audit_2025.to_csv(
+        output_dir / "ats_2025_no_leakage_bets.csv",
+        index=False,
+    )
+    report["ats_2025_no_leakage_audit"] = {
+        "strategy": audit_2025_strategy,
+        "bets": int(len(audit_2025)),
+        "wins": int((audit_2025.get("result") == "WIN").sum()) if len(audit_2025) else 0,
+        "losses": int((audit_2025.get("result") == "LOSS").sum()) if len(audit_2025) else 0,
+        "pushes": int((audit_2025.get("result") == "PUSH").sum()) if len(audit_2025) else 0,
+        "profit_units": round(float(audit_2025.get("unit_profit", pd.Series(dtype=float)).sum()), 3),
+        "method": "season-2025 classifier fit on seasons <2025; strategy frozen through 2021; outcomes graded only after recommendations",
+    }
 
     validated_spread_threshold = (
         market_validation.get("spread", {}).get("validated_threshold")

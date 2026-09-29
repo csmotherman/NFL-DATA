@@ -207,6 +207,20 @@
     return row.spread_pick + ' ' + signed(row.spread_pick_line, 1);
   }
 
+  function spreadLineForTeam(row, team) {
+    const line = num(row.spread_line);
+    if (line === null || !team) return null;
+    if (String(team) === String(row.home_team)) return -line;
+    if (String(team) === String(row.away_team)) return line;
+    return null;
+  }
+
+  function atsSideText(row) {
+    const side = row.spread_candidate_side || row.spread_pick || '';
+    if (!side) return '—';
+    return side + ' ' + signed(spreadLineForTeam(row, side), 1);
+  }
+
   function totalBetText(row) {
     if (!isApprovedBet(row.total_status) || !row.total_pick) return 'NO BET';
     return row.total_pick + ' ' + fmt(row.total_line, 1);
@@ -274,17 +288,17 @@
     $('upcomingEmpty').hidden = rows.length > 0;
     $('upcomingBody').innerHTML = rows.map((row) => {
       return '<tr>' +
-        '<td><span class="game-main">' + esc(row.away_team + ' @ ' + row.home_team) + '</span><span class="game-sub">' + esc(dateLabel(row.gameday)) + '</span></td>' +
-        '<td class="number">' + esc(marketSpread(row)) + '</td>' +
-        '<td class="number strong">' + esc(spreadBetText(row)) + '</td>' +
-        '<td class="number">' + esc(isApprovedBet(row.spread_status) ? pct(row.spread_probability, 1) : '—') + '</td>' +
-        '<td class="number">' + esc(betEdgeText(row.spread_probability_edge, row.spread_status)) + '</td>' +
-        '<td class="number">' + esc(betEvText(row.spread_expected_value, row.spread_status)) + '</td>' +
+        '<td data-sort-value="' + esc((row.gameday || '') + ' ' + row.away_team + ' ' + row.home_team) + '"><span class="game-main">' + esc(row.away_team + ' @ ' + row.home_team) + '</span><span class="game-sub">' + esc(dateLabel(row.gameday)) + '</span></td>' +
+        '<td class="number" data-sort-value="' + esc(row.spread_line || '') + '">' + esc(marketSpread(row)) + '</td>' +
+        '<td class="number strong">' + esc(atsSideText(row)) + '</td>' +
+        '<td class="number" data-sort-value="' + esc(row.spread_probability || '') + '">' + esc(pct(row.spread_probability, 1)) + '</td>' +
+        '<td class="number" data-sort-value="' + esc(row.spread_probability_edge || '') + '">' + esc(pct(row.spread_probability_edge, 1)) + '</td>' +
+        '<td class="number" data-sort-value="' + esc(row.spread_expected_value || '') + '">' + esc(pct(row.spread_expected_value, 1)) + '</td>' +
         '<td>' + statusText(row.spread_status) + '</td>' +
-        '<td class="number">' + esc(fmt(row.total_line, 1)) + '</td>' +
+        '<td class="number" data-sort-value="' + esc(row.total_line || '') + '">' + esc(fmt(row.total_line, 1)) + '</td>' +
         '<td class="number strong">' + esc(totalBetText(row)) + '</td>' +
-        '<td class="number">' + esc(betEdgeText(row.total_probability_edge, row.total_status)) + '</td>' +
-        '<td class="number">' + esc(betEvText(row.total_expected_value, row.total_status)) + '</td>' +
+        '<td class="number" data-sort-value="' + esc(row.total_probability_edge || '') + '">' + esc(betEdgeText(row.total_probability_edge, row.total_status)) + '</td>' +
+        '<td class="number" data-sort-value="' + esc(row.total_expected_value || '') + '">' + esc(betEvText(row.total_expected_value, row.total_status)) + '</td>' +
         '<td>' + statusText(row.total_status) + '</td>' +
         '</tr>';
     }).join('');
@@ -359,15 +373,16 @@
       const moneylineGrade = moneylineResult(row);
 
       return '<tr>' +
-        '<td><span class="game-main">' + esc(row.away_team + ' @ ' + row.home_team) + '</span><span class="game-sub">' + esc(dateLabel(row.gameday)) + '</span></td>' +
+        '<td data-sort-value="' + esc((row.gameday || '') + ' ' + row.away_team + ' ' + row.home_team) + '"><span class="game-main">' + esc(row.away_team + ' @ ' + row.home_team) + '</span><span class="game-sub">' + esc(dateLabel(row.gameday)) + '</span></td>' +
         '<td class="number">' + esc(finalScore(row)) + '</td>' +
-        '<td class="number">' + esc(marketSpread(row)) + '</td>' +
-        '<td class="number' + resultClass(spreadGrade) + '">' + esc(spreadBetText(row)) + '</td>' +
-        '<td class="number">' + esc(isApprovedBet(row.spread_status) ? pct(row.spread_probability, 1) : '—') + '</td>' +
-        '<td class="number">' + esc(betEdgeText(row.spread_probability_edge, row.spread_status)) + '</td>' +
-        '<td class="number">' + esc(fmt(row.total_line, 1)) + '</td>' +
+        '<td class="number" data-sort-value="' + esc(row.spread_line || '') + '">' + esc(marketSpread(row)) + '</td>' +
+        '<td class="number' + resultClass(spreadGrade) + '">' + esc(atsSideText(row)) + '</td>' +
+        '<td class="number" data-sort-value="' + esc(row.spread_probability || '') + '">' + esc(pct(row.spread_probability, 1)) + '</td>' +
+        '<td class="number" data-sort-value="' + esc(row.spread_probability_edge || '') + '">' + esc(pct(row.spread_probability_edge, 1)) + '</td>' +
+        '<td>' + statusText(row.spread_status) + '</td>' +
+        '<td class="number" data-sort-value="' + esc(row.total_line || '') + '">' + esc(fmt(row.total_line, 1)) + '</td>' +
         '<td class="number' + resultClass(totalGrade) + '">' + esc(totalBetText(row)) + '</td>' +
-        '<td class="number">' + esc(betEdgeText(row.total_probability_edge, row.total_status)) + '</td>' +
+        '<td class="number" data-sort-value="' + esc(row.total_probability_edge || '') + '">' + esc(betEdgeText(row.total_probability_edge, row.total_status)) + '</td>' +
         '</tr>';
     }).join('');
   }
@@ -647,7 +662,7 @@
 
     return '<div class="table-count"><strong>Completed Model Games</strong> · Green = correct, red = incorrect, gray = push.</div>' +
       '<div class="table-scroll"><table class="data-table">' +
-      '<thead><tr><th>Week</th><th>Game</th><th>Final Score</th><th>Market Spread</th><th>ATS Bet</th><th>Cover Prob.</th><th>ATS Edge</th><th>Market Total</th><th>Total Bet</th><th>Bet Edge</th></tr></thead>' +
+      '<thead><tr><th>Week</th><th>Game</th><th>Final Score</th><th>Market Spread</th><th>ATS Side</th><th>Cover Prob. %</th><th>ATS Edge</th><th>Status</th><th>Market Total</th><th>Total Bet</th><th>Bet Edge</th></tr></thead>' +
       '<tbody>' +
       rows.map((row) => {
         const spreadGrade = spreadResult(row);
@@ -655,16 +670,17 @@
         const moneylineGrade = moneylineResult(row);
 
         return '<tr>' +
-          '<td class="number">' + esc(row.season + ' W' + Number(row.week)) + '</td>' +
-          '<td><span class="game-main">' + esc(row.away_team + ' @ ' + row.home_team) + '</span><span class="game-sub">' + esc(dateLabel(row.gameday)) + '</span></td>' +
+          '<td class="number" data-sort-value="' + esc((Number(row.season) || 0) * 100 + (Number(row.week) || 0)) + '">' + esc(row.season + ' W' + Number(row.week)) + '</td>' +
+          '<td data-sort-value="' + esc((row.gameday || '') + ' ' + row.away_team + ' ' + row.home_team) + '"><span class="game-main">' + esc(row.away_team + ' @ ' + row.home_team) + '</span><span class="game-sub">' + esc(dateLabel(row.gameday)) + '</span></td>' +
           '<td class="number">' + esc(finalScore(row)) + '</td>' +
-          '<td class="number">' + esc(marketSpread(row)) + '</td>' +
-          '<td class="number' + resultClass(spreadGrade) + '">' + esc(spreadBetText(row)) + '</td>' +
-          '<td class="number">' + esc(isApprovedBet(row.spread_status) ? pct(row.spread_probability, 1) : '—') + '</td>' +
-          '<td class="number">' + esc(betEdgeText(row.spread_probability_edge, row.spread_status)) + '</td>' +
-          '<td class="number">' + esc(fmt(row.total_line, 1)) + '</td>' +
+          '<td class="number" data-sort-value="' + esc(row.spread_line || '') + '">' + esc(marketSpread(row)) + '</td>' +
+          '<td class="number' + resultClass(spreadGrade) + '">' + esc(atsSideText(row)) + '</td>' +
+          '<td class="number" data-sort-value="' + esc(row.spread_probability || '') + '">' + esc(pct(row.spread_probability, 1)) + '</td>' +
+          '<td class="number" data-sort-value="' + esc(row.spread_probability_edge || '') + '">' + esc(pct(row.spread_probability_edge, 1)) + '</td>' +
+          '<td>' + statusText(row.spread_status) + '</td>' +
+          '<td class="number" data-sort-value="' + esc(row.total_line || '') + '">' + esc(fmt(row.total_line, 1)) + '</td>' +
           '<td class="number' + resultClass(totalGrade) + '">' + esc(totalBetText(row)) + '</td>' +
-          '<td class="number">' + esc(betEdgeText(row.total_probability_edge, row.total_status)) + '</td>' +
+          '<td class="number" data-sort-value="' + esc(row.total_probability_edge || '') + '">' + esc(betEdgeText(row.total_probability_edge, row.total_status)) + '</td>' +
           '</tr>';
       }).join('') +
       '</tbody></table></div>';
@@ -764,7 +780,82 @@
     window.scrollTo(0, 0);
   }
 
+  function sortableValue(cell) {
+    const raw = cell && cell.dataset && cell.dataset.sortValue !== undefined
+      ? cell.dataset.sortValue
+      : (cell ? cell.textContent.trim() : '');
+
+    if (!raw || raw === '—') {
+      return { empty: true, numeric: false, value: '' };
+    }
+
+    const normalized = String(raw).replace(/[%,$]/g, '').trim();
+    if (/^[+-]?\d+(?:\.\d+)?$/.test(normalized)) {
+      return { empty: false, numeric: true, value: Number(normalized) };
+    }
+
+    return { empty: false, numeric: false, value: String(raw).toLowerCase() };
+  }
+
+  function sortTableFromHeader(header) {
+    const table = header.closest('table');
+    if (!table || !table.tBodies.length) return;
+
+    const headers = Array.from(header.parentElement.children);
+    const column = headers.indexOf(header);
+    if (column < 0) return;
+
+    const tbody = table.tBodies[0];
+    const rows = Array.from(tbody.rows);
+    if (rows.length < 2) return;
+
+    const sample = rows
+      .map((row) => sortableValue(row.cells[column]))
+      .find((value) => !value.empty);
+    const numeric = Boolean(sample && sample.numeric);
+
+    const sameColumn = Number(table.dataset.sortColumn) === column;
+    const previous = table.dataset.sortDirection || '';
+    const direction = sameColumn
+      ? (previous === 'desc' ? 'asc' : 'desc')
+      : (numeric ? 'desc' : 'asc');
+
+    rows.sort((a, b) => {
+      const left = sortableValue(a.cells[column]);
+      const right = sortableValue(b.cells[column]);
+
+      if (left.empty && right.empty) return 0;
+      if (left.empty) return 1;
+      if (right.empty) return -1;
+
+      let comparison;
+      if (left.numeric && right.numeric) {
+        comparison = left.value - right.value;
+      } else {
+        comparison = String(left.value).localeCompare(String(right.value));
+      }
+
+      return direction === 'asc' ? comparison : -comparison;
+    });
+
+    rows.forEach((row) => tbody.appendChild(row));
+
+    table.dataset.sortColumn = String(column);
+    table.dataset.sortDirection = direction;
+
+    headers.forEach((item) => item.removeAttribute('aria-sort'));
+    header.setAttribute(
+      'aria-sort',
+      direction === 'asc' ? 'ascending' : 'descending'
+    );
+  }
+
   function bindEvents() {
+    document.addEventListener('click', (event) => {
+      const header = event.target.closest('.data-table th');
+      if (header) sortTableFromHeader(header);
+    });
+
     document.querySelectorAll('[data-route]').forEach((element) => {
       element.addEventListener('click', (event) => {
         event.preventDefault();

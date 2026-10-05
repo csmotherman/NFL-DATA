@@ -675,25 +675,18 @@
       "profitable_seasons": 5,
       "strategy_validated": true,
       "production_enabled": true,
-      "production_mode": "CAUTION",
+      "production_mode": "VALIDATED",
       "regime_check": {
-        "alert": true,
-        "p_value": 0.066,
+        "alert": false,
+        "p_value": 0.1201,
         "expected_win_rate": 0.544,
-        "current_win_rate": 0.2727,
-        "bets": 11,
-        "wins": 3,
+        "current_win_rate": 0.3333,
+        "bets": 12,
+        "wins": 4,
         "losses": 8,
-        "reason": "Current-season shadow performance is statistically inconsistent with the frozen confirmation rate."
+        "reason": "Current-season shadow has not crossed the suspension threshold."
       },
-      "caution_shadow": {
-        "bets": 5,
-        "wins": 2,
-        "losses": 3,
-        "win_rate": 0.4,
-        "roi": -0.2548,
-        "profit_units": -1.274
-      },
+      "caution_shadow": null,
       "nested_strategy_validated": true,
       "frozen_confirmation": {
         "discovery_through": 2021,
@@ -818,7 +811,7 @@
         "orientation": "normal",
         "side_mode": "negative",
         "segment": "short_line",
-        "threshold": 0.08,
+        "threshold": 0.02,
         "bets": 263,
         "wins": 149,
         "losses": 114,
@@ -881,17 +874,17 @@
           }
         ],
         "candidates_tested": 190,
-        "reason": "Historical edge passed confirmation, but the current-season shadow triggered the regime alert. Using the same frozen policy with a stricter probability-edge threshold."
+        "reason": "Frozen historical policy passed confirmation and the current-season regime check."
       },
       "current_season_shadow": {
         "season": 2026,
-        "games": 45,
-        "bets": 11,
-        "wins": 3,
+        "games": 58,
+        "bets": 12,
+        "wins": 4,
         "losses": 8,
-        "win_rate": 0.2727,
-        "roi": -0.4838,
-        "profit_units": -5.321
+        "win_rate": 0.3333,
+        "roi": -0.371,
+        "profit_units": -4.452
       },
       "model_comparison": {
         "status": "ok",
@@ -2516,7 +2509,7 @@
           ]
         }
       },
-      "validated_threshold": 0.08
+      "validated_threshold": 0.02
     },
     "total": {
       "status": "ok",
@@ -3250,7 +3243,7 @@
       },
       "current_season_shadow": {
         "season": 2026,
-        "games": 48,
+        "games": 63,
         "bets": 0,
         "wins": 0,
         "losses": 0,
@@ -5200,25 +5193,18 @@
       "profitable_seasons": 5,
       "strategy_validated": true,
       "production_enabled": true,
-      "production_mode": "CAUTION",
+      "production_mode": "VALIDATED",
       "regime_check": {
-        "alert": true,
-        "p_value": 0.066,
+        "alert": false,
+        "p_value": 0.1201,
         "expected_win_rate": 0.544,
-        "current_win_rate": 0.2727,
-        "bets": 11,
-        "wins": 3,
+        "current_win_rate": 0.3333,
+        "bets": 12,
+        "wins": 4,
         "losses": 8,
-        "reason": "Current-season shadow performance is statistically inconsistent with the frozen confirmation rate."
+        "reason": "Current-season shadow has not crossed the suspension threshold."
       },
-      "caution_shadow": {
-        "bets": 5,
-        "wins": 2,
-        "losses": 3,
-        "win_rate": 0.4,
-        "roi": -0.2548,
-        "profit_units": -1.274
-      },
+      "caution_shadow": null,
       "nested_strategy_validated": true,
       "frozen_confirmation": {
         "discovery_through": 2021,
@@ -5343,7 +5329,7 @@
         "orientation": "normal",
         "side_mode": "negative",
         "segment": "short_line",
-        "threshold": 0.08,
+        "threshold": 0.02,
         "bets": 263,
         "wins": 149,
         "losses": 114,
@@ -5406,17 +5392,17 @@
           }
         ],
         "candidates_tested": 190,
-        "reason": "Historical edge passed confirmation, but the current-season shadow triggered the regime alert. Using the same frozen policy with a stricter probability-edge threshold."
+        "reason": "Frozen historical policy passed confirmation and the current-season regime check."
       },
       "current_season_shadow": {
         "season": 2026,
-        "games": 45,
-        "bets": 11,
-        "wins": 3,
+        "games": 58,
+        "bets": 12,
+        "wins": 4,
         "losses": 8,
-        "win_rate": 0.2727,
-        "roi": -0.4838,
-        "profit_units": -5.321
+        "win_rate": 0.3333,
+        "roi": -0.371,
+        "profit_units": -4.452
       },
       "model_comparison": {
         "status": "ok",
@@ -7041,7 +7027,7 @@
           ]
         }
       },
-      "validated_threshold": 0.08
+      "validated_threshold": 0.02
     },
     "total": {
       "status": "ok",
@@ -7775,7 +7761,7 @@
       },
       "current_season_shadow": {
         "season": 2026,
-        "games": 48,
+        "games": 63,
         "bets": 0,
         "wins": 0,
         "losses": 0,
@@ -9281,18 +9267,18 @@
     "roi": 0.0163,
     "method": "season-2025 total classifier fit on seasons <2025; strategy frozen through 2021; outcomes graded only after recommendations"
   },
-  "generated_at_utc": "2026-10-01T20:54:36Z",
+  "generated_at_utc": "2026-10-05T17:40:49Z",
   "training_start_season": 2014,
   "current_season": 2026,
   "target_week": 4,
   "rolling_games": 8,
   "min_rolling_games": 3,
-  "historical_training_games_final_fit": 2983,
+  "historical_training_games_final_fit": 2998,
   "spread_watch_threshold": 3.0,
   "total_watch_threshold": 3.0,
-  "validated_spread_threshold": 0.08,
+  "validated_spread_threshold": 0.02,
   "validated_total_threshold": null,
-  "candidate_count": 0,
+  "candidate_count": 3,
   "notes": [
     "Independent football projections remain a descriptive sanity check only.",
     "Spread bets directly model home-cover probability; total bets directly model over probability.",

@@ -24,11 +24,13 @@ The goal is **research and price discovery**, not to force a bet on every game.
 - `outputs/latest_matchups.csv` — pass/run matchup and projected-volume board.
 - `outputs/latest_candidates.csv` — only games passing configurable edge filters.
 - `outputs/model_report.json` — holdout MAE, directional accuracy and threshold backtests.
-- `outputs/team_state.csv` — current rolling team profiles.\n- `outputs/latest_player_props.csv` — upcoming QB/RB/WR/TE projections.\n- `outputs/latest_player_prop_edges.csv` — projection-vs-line discrepancies when prop lines are supplied.\n- `outputs/player_prop_model_report.json` — walk-forward MAE, baseline comparison, blend weights and uncertainty by prop market.\n- `outputs/player_prop_walkforward_oof.csv` — out-of-fold historical player prop predictions.
+- `outputs/team_state.csv` — current rolling team profiles.\n- `outputs/team_stats.csv` — current-season raw and opponent-adjusted offense/defense EPA per play, pass and rush, with ranks.\n- `outputs/latest_player_props.csv` — upcoming QB/RB/WR/TE projections.\n- `outputs/latest_player_prop_edges.csv` — projection-vs-line discrepancies when prop lines are supplied.\n- `outputs/player_prop_model_report.json` — walk-forward MAE, baseline comparison, blend weights and uncertainty by prop market.\n- `outputs/player_prop_walkforward_oof.csv` — out-of-fold historical player prop predictions.
 
 ## Model design
 
 The model uses rolling **pregame-only** team information. Historical features are shifted before each game, so a game's result is never used to predict itself.
+
+The site also exposes a separate **Team Stats** view for current-season EPA. It fits a play-weighted, regularized two-way model to each team-game observation so offensive EPA is adjusted for the defenses faced and defensive EPA allowed is adjusted for the offenses faced. Pass EPA is per dropback (attempts + sacks), rush EPA is per carry, and defensive EPA is displayed as EPA allowed, where lower is better. Raw EPA is retained beside the adjusted values in `outputs/team_stats.csv` for auditing.
 
 Core inputs include:
 

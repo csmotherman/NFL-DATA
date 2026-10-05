@@ -342,6 +342,24 @@ button {
   font-weight: 700;
 }
 
+.metric-value {
+  display: inline-block;
+  min-width: 48px;
+  font-weight: 700;
+}
+
+.metric-rank {
+  display: inline-block;
+  margin-left: 6px;
+  color: var(--gray-2);
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.stats-table {
+  min-width: 980px;
+}
+
 .result-win {
   background: #b7ff4a !important;
   color: #0b2b00 !important;
@@ -461,6 +479,7 @@ button {
     order: 3;
     width: 100%;
     border-top: 1px solid var(--gray-4);
+    overflow-x: auto;
   }
 
   .nav-link {

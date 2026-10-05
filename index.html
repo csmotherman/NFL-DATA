@@ -13,6 +13,7 @@
       <a class="brand" href="#week" data-route="week">NFL BETTING MODEL</a>
       <nav class="site-nav">
         <button class="nav-link is-active" data-route="week">This Week</button>
+        <button class="nav-link" data-route="stats">Stats</button>
         <button class="nav-link" data-route="props">Player Props</button>
         <button class="nav-link" data-route="history">History</button>
         <button class="nav-link" data-route="model">Model</button>
@@ -100,6 +101,52 @@
             </thead>
             <tbody id="completedBody"></tbody>
           </table>
+        </div>
+      </section>
+    </section>
+
+    <section class="page" id="page-stats">
+      <div class="page-header">
+        <div>
+          <h1>Team Stats</h1>
+          <p>Opponent-adjusted EPA for every team. Higher is better on offense; lower is better on defense.</p>
+        </div>
+      </div>
+
+      <div class="notice">
+        <strong>Adjusted EPA:</strong> current-season, completed-game EPA is separated into offense and opponent-defense effects with play-weighted ridge shrinkage. This reduces schedule-strength bias and keeps early-season samples from overreacting.
+      </div>
+
+      <section class="content-section">
+        <div class="section-header">
+          <div>
+            <h2>Adjusted EPA</h2>
+            <p>EPA/Pass is per dropback (attempts + sacks). EPA/Rush is per carry. Defensive values are EPA allowed.</p>
+          </div>
+          <label class="filter">
+            <span>Search</span>
+            <input id="statsSearch" type="search" placeholder="Team">
+          </label>
+        </div>
+
+        <div class="table-count" id="statsCount"></div>
+        <div class="table-scroll">
+          <table class="data-table stats-table">
+            <thead>
+              <tr>
+                <th>Team</th>
+                <th>Games</th>
+                <th>Off EPA/Play</th>
+                <th>Off EPA/Pass</th>
+                <th>Off EPA/Rush</th>
+                <th data-sort-default="asc">Def EPA/Play</th>
+                <th data-sort-default="asc">Def EPA/Pass</th>
+                <th data-sort-default="asc">Def EPA/Rush</th>
+              </tr>
+            </thead>
+            <tbody id="statsBody"></tbody>
+          </table>
+          <div class="empty-message" id="statsEmpty" hidden>No team stats match this search.</div>
         </div>
       </section>
     </section>

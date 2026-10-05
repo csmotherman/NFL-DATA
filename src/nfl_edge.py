@@ -36,7 +36,7 @@ from nflreadpy.config import update_config
 
 from sklearn.ensemble import HistGradientBoostingRegressor
 from sklearn.impute import SimpleImputer
-from sklearn.linear_model import RidgeCV
+from sklearn.linear_model import Ridge, RidgeCV
 from sklearn.metrics import mean_absolute_error
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
@@ -55,6 +55,7 @@ MIN_ROLLING_GAMES = 3
 START_SEASON = 2014
 RANDOM_STATE = 42
 MARKET_WALK_FORWARD_SEASONS = [2022, 2023, 2024, 2025]
+ADJUSTED_EPA_RIDGE_ALPHA = 2.5
 
 RAW_FEATURES = [
     "off_pass_epa_db",
@@ -334,6 +335,253 @@ def latest_team_state(team_games: pd.DataFrame) -> pd.DataFrame:
         )
 
     return state
+
+
+def _weighted_metric_average(
+    frame: pd.DataFrame,
+    value_col: str,
+    weight_col: str,
+) -> float:
+    """Play-weighted average for one EPA component."""
+    values = pd.to_numeric(frame[value_col], errors="coerce")
+    weights = pd.to_numeric(frame[weight_col], errors="coerce")
+    valid = (
+        values.notna()
+        & weights.notna()
+        & np.isfinite(values)
+        & np.isfinite(weights)
+        & (weights > 0)
+    )
+    if not valid.any():
+        return np.nan
+    return float(np.average(values[valid], weights=weights[valid]))
+
+
+def _fit_adjusted_epa_component(
+    games: pd.DataFrame,
+    teams: list[str],
+    value_col: str,
+    weight_col: str,
+    alpha: float = ADJUSTED_EPA_RIDGE_ALPHA,
+) -> tuple[dict[str, float], dict[str, float], float]:
+    """
+    Estimate schedule-adjusted EPA with a regularized two-way model.
+
+    Each team-game observation is decomposed into an offense effect and the
+    opposing defense effect. Play counts are used as weights, and ridge
+    shrinkage keeps early-season estimates from overreacting to tiny samples.
+
+    Returns:
+      offense: expected EPA versus an average defense
+      defense: expected EPA allowed versus an average offense
+      league_average: play-weighted league EPA for the component
+    """
+    sample = games[
+        ["team", "opponent_team", value_col, weight_col]
+    ].copy()
+    sample[value_col] = pd.to_numeric(sample[value_col], errors="coerce")
+    sample[weight_col] = pd.to_numeric(sample[weight_col], errors="coerce")
+    sample = sample[
+        sample["team"].notna()
+        & sample["opponent_team"].notna()
+        & sample[value_col].notna()
+        & sample[weight_col].notna()
+        & np.isfinite(sample[value_col])
+        & np.isfinite(sample[weight_col])
+        & (sample[weight_col] > 0)
+    ].copy()
+
+    if sample.empty:
+        empty = {team: np.nan for team in teams}
+        return empty, empty.copy(), np.nan
+
+    y = sample[value_col].to_numpy(dtype=float)
+    raw_weights = sample[weight_col].to_numpy(dtype=float)
+    league_average = float(np.average(y, weights=raw_weights))
+
+    # Normalize weights so alpha remains interpretable as the season grows.
+    weights = raw_weights / raw_weights.mean()
+    team_to_col = {team: idx for idx, team in enumerate(teams)}
+    n_teams = len(teams)
+    X = np.zeros((len(sample), n_teams * 2), dtype=float)
+
+    for row_idx, (offense, defense) in enumerate(
+        zip(sample["team"], sample["opponent_team"])
+    ):
+        X[row_idx, team_to_col[str(offense)]] = 1.0
+        X[row_idx, n_teams + team_to_col[str(defense)]] = 1.0
+
+    model = Ridge(alpha=alpha, fit_intercept=False)
+    model.fit(
+        X,
+        y - league_average,
+        sample_weight=weights,
+    )
+
+    offense = {
+        team: league_average + float(model.coef_[team_to_col[team]])
+        for team in teams
+    }
+    defense = {
+        team: league_average
+        + float(model.coef_[n_teams + team_to_col[team]])
+        for team in teams
+    }
+    return offense, defense, league_average
+
+
+def build_adjusted_epa_table(
+    team_games: pd.DataFrame,
+    season: int,
+) -> pd.DataFrame:
+    """
+    Build current-season opponent-adjusted EPA for every team.
+
+    EPA/pass uses dropbacks (attempts + sacks); EPA/rush uses carries.
+    EPA/play combines those two components. Defensive values are EPA allowed,
+    so lower is better on defense.
+    """
+    current = team_games[
+        pd.to_numeric(team_games["season"], errors="coerce").eq(season)
+    ].copy()
+
+    if current.empty:
+        return pd.DataFrame(columns=[
+            "season", "team", "games",
+            "raw_off_epa_per_play", "adj_off_epa_per_play",
+            "raw_off_epa_per_pass", "adj_off_epa_per_pass",
+            "raw_off_epa_per_rush", "adj_off_epa_per_rush",
+            "raw_def_epa_per_play_allowed", "adj_def_epa_per_play_allowed",
+            "raw_def_epa_per_pass_allowed", "adj_def_epa_per_pass_allowed",
+            "raw_def_epa_per_rush_allowed", "adj_def_epa_per_rush_allowed",
+        ])
+
+    current["epa_plays"] = pd.to_numeric(
+        current["off_plays"], errors="coerce"
+    )
+    current["epa_pass_plays"] = (
+        pd.to_numeric(current["off_pass_rate"], errors="coerce")
+        * current["epa_plays"]
+    )
+    current["epa_rush_plays"] = (
+        current["epa_plays"] - current["epa_pass_plays"]
+    )
+    current["off_epa_per_play"] = safe_div(
+        (
+            pd.to_numeric(current["off_pass_epa_db"], errors="coerce")
+            * current["epa_pass_plays"]
+        )
+        + (
+            pd.to_numeric(current["off_rush_epa_att"], errors="coerce")
+            * current["epa_rush_plays"]
+        ),
+        current["epa_plays"],
+    )
+
+    teams = sorted(
+        {
+            str(team)
+            for team in pd.concat(
+                [current["team"], current["opponent_team"]],
+                ignore_index=True,
+            ).dropna()
+        }
+    )
+
+    adj_off_play, adj_def_play, league_epa_play = _fit_adjusted_epa_component(
+        current, teams, "off_epa_per_play", "epa_plays"
+    )
+    adj_off_pass, adj_def_pass, league_epa_pass = _fit_adjusted_epa_component(
+        current, teams, "off_pass_epa_db", "epa_pass_plays"
+    )
+    adj_off_rush, adj_def_rush, league_epa_rush = _fit_adjusted_epa_component(
+        current, teams, "off_rush_epa_att", "epa_rush_plays"
+    )
+
+    # Flip the offense perspective so raw defensive numbers use the exact same
+    # underlying observations and play weights as the adjusted model.
+    defense_games = current[
+        [
+            "team", "opponent_team",
+            "off_epa_per_play", "off_pass_epa_db", "off_rush_epa_att",
+            "epa_plays", "epa_pass_plays", "epa_rush_plays",
+        ]
+    ].rename(columns={
+        "team": "offense_team",
+        "opponent_team": "team",
+        "off_epa_per_play": "def_epa_per_play_allowed",
+        "off_pass_epa_db": "def_epa_per_pass_allowed",
+        "off_rush_epa_att": "def_epa_per_rush_allowed",
+        "epa_plays": "def_plays",
+        "epa_pass_plays": "def_pass_plays",
+        "epa_rush_plays": "def_rush_plays",
+    })
+
+    rows = []
+    for team in teams:
+        offense_rows = current[current["team"].astype(str).eq(team)]
+        defense_rows = defense_games[
+            defense_games["team"].astype(str).eq(team)
+        ]
+
+        rows.append({
+            "season": season,
+            "team": team,
+            "games": int(len(offense_rows)),
+            "raw_off_epa_per_play": _weighted_metric_average(
+                offense_rows, "off_epa_per_play", "epa_plays"
+            ),
+            "adj_off_epa_per_play": adj_off_play.get(team, league_epa_play),
+            "raw_off_epa_per_pass": _weighted_metric_average(
+                offense_rows, "off_pass_epa_db", "epa_pass_plays"
+            ),
+            "adj_off_epa_per_pass": adj_off_pass.get(team, league_epa_pass),
+            "raw_off_epa_per_rush": _weighted_metric_average(
+                offense_rows, "off_rush_epa_att", "epa_rush_plays"
+            ),
+            "adj_off_epa_per_rush": adj_off_rush.get(team, league_epa_rush),
+            "raw_def_epa_per_play_allowed": _weighted_metric_average(
+                defense_rows, "def_epa_per_play_allowed", "def_plays"
+            ),
+            "adj_def_epa_per_play_allowed": adj_def_play.get(
+                team, league_epa_play
+            ),
+            "raw_def_epa_per_pass_allowed": _weighted_metric_average(
+                defense_rows, "def_epa_per_pass_allowed", "def_pass_plays"
+            ),
+            "adj_def_epa_per_pass_allowed": adj_def_pass.get(
+                team, league_epa_pass
+            ),
+            "raw_def_epa_per_rush_allowed": _weighted_metric_average(
+                defense_rows, "def_epa_per_rush_allowed", "def_rush_plays"
+            ),
+            "adj_def_epa_per_rush_allowed": adj_def_rush.get(
+                team, league_epa_rush
+            ),
+        })
+
+    out = pd.DataFrame(rows)
+
+    rank_specs = [
+        ("adj_off_epa_per_play", "off_epa_play_rank", False),
+        ("adj_off_epa_per_pass", "off_epa_pass_rank", False),
+        ("adj_off_epa_per_rush", "off_epa_rush_rank", False),
+        ("adj_def_epa_per_play_allowed", "def_epa_play_rank", True),
+        ("adj_def_epa_per_pass_allowed", "def_epa_pass_rank", True),
+        ("adj_def_epa_per_rush_allowed", "def_epa_rush_rank", True),
+    ]
+    for value_col, rank_col, ascending in rank_specs:
+        out[rank_col] = (
+            pd.to_numeric(out[value_col], errors="coerce")
+            .rank(method="min", ascending=ascending)
+            .astype("Int64")
+        )
+
+    return out.sort_values(
+        ["adj_off_epa_per_play", "team"],
+        ascending=[False, True],
+        na_position="last",
+    ).reset_index(drop=True)
 
 
 def build_historical_dataset(
@@ -1090,6 +1338,7 @@ def main() -> None:
 
     pregame = add_pregame_rolling(team_games)
     current_state = latest_team_state(team_games)
+    adjusted_epa = build_adjusted_epa_table(team_games, season)
 
     dataset, feature_cols = build_historical_dataset(schedules, pregame)
 
@@ -1282,6 +1531,7 @@ def main() -> None:
     matchups.to_csv(output_dir / "latest_matchups.csv", index=False)
     candidates.to_csv(output_dir / "latest_candidates.csv", index=False)
     current_state.to_csv(output_dir / "team_state.csv", index=False)
+    adjusted_epa.to_csv(output_dir / "team_stats.csv", index=False)
 
     report.update({
         "generated_at_utc": datetime.utcnow().isoformat(timespec="seconds") + "Z",
@@ -1290,6 +1540,8 @@ def main() -> None:
         "target_week": target_week,
         "rolling_games": ROLLING_GAMES,
         "min_rolling_games": MIN_ROLLING_GAMES,
+        "adjusted_epa_ridge_alpha": ADJUSTED_EPA_RIDGE_ALPHA,
+        "adjusted_epa_method": "current-season play-weighted additive offense/defense ridge model; defense is EPA allowed and lower is better",
         "historical_training_games_final_fit": int(len(dataset)),
         "spread_watch_threshold": args.spread_edge,
         "total_watch_threshold": args.total_edge,

@@ -3,6 +3,7 @@
 
   const PATHS = {
     board: 'outputs/latest_betting_board.csv',
+    teamStats: 'outputs/team_stats.csv',
     props: 'outputs/latest_player_props.csv',
     propEdges: 'outputs/latest_player_prop_edges.csv',
     gameHistory: 'outputs/game_bet_history.csv',
@@ -15,6 +16,7 @@
 
   const state = {
     board: [],
+    teamStats: [],
     props: [],
     propEdges: [],
     gameHistory: [],
@@ -252,6 +254,37 @@
       '<div class="summary-value">' + esc(value) + '</div>' +
       '<div class="summary-meta">' + esc(meta || '') + '</div>' +
       '</div>';
+  }
+
+  function metricCell(value, rank) {
+    const rankNumber = num(rank);
+    return '<span class="metric-value">' + esc(signed(value, 3)) + '</span>' +
+      '<span class="metric-rank">' + (rankNumber === null ? '—' : '#' + Math.round(rankNumber)) + '</span>';
+  }
+
+  function renderStats() {
+    const query = String($('statsSearch').value || '').trim().toLowerCase();
+    const rows = state.teamStats.filter((row) => {
+      return !query || String(row.team || '').toLowerCase().includes(query);
+    });
+
+    $('statsCount').textContent = rows.length
+      ? rows.length + ' teams · current season'
+      : 'No teams';
+    $('statsEmpty').hidden = rows.length > 0;
+
+    $('statsBody').innerHTML = rows.map((row) => {
+      return '<tr>' +
+        '<td><span class="game-main">' + esc(row.team || '—') + '</span></td>' +
+        '<td class="number" data-sort-value="' + esc(row.games || '') + '">' + esc(row.games || '—') + '</td>' +
+        '<td class="number" data-sort-value="' + esc(row.adj_off_epa_per_play || '') + '">' + metricCell(row.adj_off_epa_per_play, row.off_epa_play_rank) + '</td>' +
+        '<td class="number" data-sort-value="' + esc(row.adj_off_epa_per_pass || '') + '">' + metricCell(row.adj_off_epa_per_pass, row.off_epa_pass_rank) + '</td>' +
+        '<td class="number" data-sort-value="' + esc(row.adj_off_epa_per_rush || '') + '">' + metricCell(row.adj_off_epa_per_rush, row.off_epa_rush_rank) + '</td>' +
+        '<td class="number" data-sort-value="' + esc(row.adj_def_epa_per_play_allowed || '') + '">' + metricCell(row.adj_def_epa_per_play_allowed, row.def_epa_play_rank) + '</td>' +
+        '<td class="number" data-sort-value="' + esc(row.adj_def_epa_per_pass_allowed || '') + '">' + metricCell(row.adj_def_epa_per_pass_allowed, row.def_epa_pass_rank) + '</td>' +
+        '<td class="number" data-sort-value="' + esc(row.adj_def_epa_per_rush_allowed || '') + '">' + metricCell(row.adj_def_epa_per_rush_allowed, row.def_epa_rush_rank) + '</td>' +
+        '</tr>';
+    }).join('');
   }
 
   function renderWeekSummary() {
@@ -791,7 +824,7 @@
   }
 
   function setRoute(route) {
-    const valid = ['week', 'props', 'history', 'model'];
+    const valid = ['week', 'stats', 'props', 'history', 'model'];
     if (!valid.includes(route)) route = 'week';
 
     document.querySelectorAll('.page').forEach((page) => {
@@ -845,9 +878,10 @@
 
     const sameColumn = Number(table.dataset.sortColumn) === column;
     const previous = table.dataset.sortDirection || '';
+    const preferredDirection = header.dataset.sortDefault;
     const direction = sameColumn
       ? (previous === 'desc' ? 'asc' : 'desc')
-      : (numeric ? 'desc' : 'asc');
+      : (preferredDirection || (numeric ? 'desc' : 'asc'));
 
     rows.sort((a, b) => {
       const left = sortableValue(a.cells[column]);
@@ -893,6 +927,7 @@
     });
 
     $('weekFilter').addEventListener('change', renderUpcoming);
+    $('statsSearch').addEventListener('input', renderStats);
     $('propMarket').addEventListener('change', renderProps);
     $('propSearch').addEventListener('input', renderProps);
     $('historyWeek').addEventListener('change', renderHistory);
@@ -914,6 +949,7 @@
   async function load() {
     const [
       board,
+      teamStats,
       props,
       propEdges,
       gameHistory,
@@ -924,6 +960,7 @@
       propForward
     ] = await Promise.all([
       fetchCsv(PATHS.board),
+      fetchCsv(PATHS.teamStats),
       fetchCsv(PATHS.props),
       fetchCsv(PATHS.propEdges),
       fetchCsv(PATHS.gameHistory),
@@ -935,6 +972,7 @@
     ]);
 
     state.board = board;
+    state.teamStats = teamStats;
     state.props = props;
     state.propEdges = propEdges;
     state.gameHistory = gameHistory;
@@ -947,6 +985,7 @@
     renderWeekSummary();
     renderUpcoming();
     renderCompleted();
+    renderStats();
 
     setupPropMarkets();
     renderPropCallout();

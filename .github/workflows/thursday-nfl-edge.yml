@@ -56,7 +56,7 @@ jobs:
         run: python -m pip install -r requirements.txt
 
       - name: Compile check
-        run: python -m py_compile src/nfl_edge.py src/market_strategy.py src/player_props.py src/fantasy_ros.py src/fetch_prop_lines.py src/grade_game_history.py src/lock_forward_props.py src/grade_prop_history.py
+        run: python -m py_compile src/nfl_edge.py src/market_strategy.py src/player_props.py src/fantasy_ros.py src/fetch_prop_lines.py src/grade_game_history.py src/lock_forward_props.py src/grade_prop_history.py src/fantasy_leaderboard.py
 
       - name: Run weekly model
         shell: bash
@@ -111,6 +111,17 @@ jobs:
           python src/fantasy_ros.py \
             --season "$SEASON" \
             --output-dir outputs
+
+      - name: Build opponent-adjusted fantasy leaderboard
+        shell: bash
+        run: |
+          SEASON="${{ inputs.season }}"
+          if [[ -z "$SEASON" ]]; then
+            SEASON="$(date +%Y)"
+          fi
+          python src/fantasy_leaderboard.py \
+            --season "$SEASON" \
+            --output outputs/fantasy_leaderboard.csv
 
       - name: Lock forward player prop edges
         run: |

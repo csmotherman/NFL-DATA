@@ -14,6 +14,7 @@
       <nav class="site-nav">
         <button class="nav-link is-active" data-route="week">This Week</button>
         <button class="nav-link" data-route="stats">Stats</button>
+        <button class="nav-link" data-route="fantasy">Fantasy</button>
         <button class="nav-link" data-route="props">Player Props</button>
         <button class="nav-link" data-route="history">History</button>
         <button class="nav-link" data-route="model">Model</button>
@@ -147,6 +148,64 @@
             <tbody id="statsBody"></tbody>
           </table>
           <div class="empty-message" id="statsEmpty" hidden>No team stats match this search.</div>
+        </div>
+      </section>
+    </section>
+
+
+    <section class="page" id="page-fantasy">
+      <div class="page-header">
+        <div>
+          <h1>Fantasy Leaderboard</h1>
+          <p>Full-PPR fantasy points per game, normalized for the quality of the defenses each player has faced.</p>
+        </div>
+        <div class="week-label" id="fantasyWeekLabel">—</div>
+      </div>
+
+      <div class="notice">
+        <strong>Opponent adjustment:</strong> for each position, team-level fantasy output is split into positional offense and opponent-defense effects across the full schedule graph, solved iteratively with early-season shrinkage. Each player-game is then normalized to a league-average opponent. A positive SOS Adj means the player gets credit for a tougher-than-average defensive schedule. Scoring is full PPR with 4-point passing TDs.
+      </div>
+
+      <section class="content-section">
+        <div class="section-header">
+          <div>
+            <h2>Opponent-Adjusted FPPG</h2>
+            <p>Ranked by adjusted fantasy points per game. Sort any column.</p>
+          </div>
+          <div class="filters">
+            <label class="filter">
+              <span>Position</span>
+              <select id="fantasyPosition">
+                <option value="QB">QB</option>
+                <option value="RB">RB</option>
+                <option value="WR">WR</option>
+                <option value="TE">TE</option>
+              </select>
+            </label>
+            <label class="filter">
+              <span>Search</span>
+              <input id="fantasySearch" type="search" placeholder="Player or team">
+            </label>
+          </div>
+        </div>
+
+        <div class="table-count" id="fantasyCount"></div>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>RK</th>
+                <th>Player</th>
+                <th>Team</th>
+                <th>GP</th>
+                <th>Raw FPPG</th>
+                <th>SOS Adj</th>
+                <th data-sort-default="desc">Adj FPPG</th>
+              </tr>
+            </thead>
+            <tbody id="fantasyBody"></tbody>
+          </table>
+          <div class="empty-message" id="fantasyEmpty" hidden>No fantasy players match these filters.</div>
         </div>
       </section>
     </section>

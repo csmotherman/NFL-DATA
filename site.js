@@ -4,6 +4,7 @@
   const PATHS = {
     board: 'outputs/latest_betting_board.csv',
     teamStats: 'outputs/team_stats.csv',
+    fantasy: 'outputs/fantasy_leaderboard.csv',
     props: 'outputs/latest_player_props.csv',
     propEdges: 'outputs/latest_player_prop_edges.csv',
     gameHistory: 'outputs/game_bet_history.csv',
@@ -17,6 +18,9 @@
   const state = {
     board: [],
     teamStats: [],
+    fantasy: [],
+    fantasyLoading: false,
+    fantasyError: false,
     props: [],
     propEdges: [],
     gameHistory: [],
@@ -260,6 +264,301 @@
     const rankNumber = num(rank);
     return '<span class="metric-value">' + esc(signed(value, 3)) + '</span>' +
       '<span class="metric-rank">' + (rankNumber === null ? '—' : '#' + Math.round(rankNumber)) + '</span>';
+  }
+
+
+  function fantasyPosition(value) {
+    const position = String(value || '').toUpperCase();
+    return position === 'FB' ? 'RB' : position;
+  }
+
+  function scheduleAdjustment(value) {
+    const n = num(value);
+    if (n === null) return '—';
+    return (n > 0 ? '+' : '') + (n * 100).toFixed(1) + '%';
+  }
+
+  function renderFantasy() {
+    const position = $('fantasyPosition').value || 'QB';
+    const query = String($('fantasySearch').value || '').trim().toLowerCase();
+
+    let rows = state.fantasy
+      .filter((row) => String(row.position || '').toUpperCase() === position)
+      .filter((row) => {
+        if (!query) return true;
+        return String(row.player_name || '').toLowerCase().includes(query) ||
+          String(row.team || '').toLowerCase().includes(query);
+      })
+      .sort((a, b) => {
+        const ar = num(a.rank);
+        const br = num(b.rank);
+        if (ar !== null && br !== null && ar !== br) return ar - br;
+        return (num(b.adjusted_fppg) || 0) - (num(a.adjusted_fppg) || 0);
+      });
+
+    const allPositionRows = state.fantasy.filter(
+      (row) => String(row.position || '').toUpperCase() === position
+    );
+    const throughWeek = allPositionRows.length ? allPositionRows[0].through_week : null;
+    const season = allPositionRows.length ? allPositionRows[0].season : null;
+
+    if (season && throughWeek) {
+      $('fantasyWeekLabel').textContent = season + ' · THROUGH WEEK ' + Number(throughWeek);
+    } else {
+      $('fantasyWeekLabel').textContent = '—';
+    }
+
+    if (state.fantasyLoading) {
+      $('fantasyCount').textContent = 'Loading current fantasy data…';
+    } else if (allPositionRows.length) {
+      $('fantasyCount').textContent =
+        allPositionRows.length + ' ' + position + 's · ' +
+        (throughWeek ? 'through Week ' + Number(throughWeek) : 'current season');
+    } else if (state.fantasyError) {
+      $('fantasyCount').textContent =
+        'Leaderboard will populate from the next scheduled model refresh.';
+    } else {
+      $('fantasyCount').textContent = 'No fantasy data yet.';
+    }
+
+    $('fantasyEmpty').hidden = rows.length > 0 || state.fantasyLoading;
+    $('fantasyEmpty').textContent = state.fantasyError
+      ? 'Current fallback data could not be loaded. The next scheduled refresh will publish the leaderboard.'
+      : 'No fantasy players match these filters.';
+
+    $('fantasyBody').innerHTML = rows.map((row) => {
+      return '<tr>' +
+        '<td class="number strong" data-sort-value="' + esc(row.rank || '') + '">' + esc(row.rank || '—') + '</td>' +
+        '<td><span class="game-main">' + esc(row.player_name || '—') + '</span><span class="game-sub">' + esc(row.position || '') + '</span></td>' +
+        '<td>' + esc(row.team || '—') + '</td>' +
+        '<td class="number" data-sort-value="' + esc(row.games || '') + '">' + esc(row.games || '—') + '</td>' +
+        '<td class="number" data-sort-value="' + esc(row.raw_fppg || '') + '">' + esc(fmt(row.raw_fppg, 2)) + '</td>' +
+        '<td class="number" data-sort-value="' + esc(row.opponent_adjustment_pct || '') + '">' + esc(scheduleAdjustment(row.opponent_adjustment_pct)) + '</td>' +
+        '<td class="number strong" data-sort-value="' + esc(row.adjusted_fppg || '') + '">' + esc(fmt(row.adjusted_fppg, 2)) + '</td>' +
+        '</tr>';
+    }).join('');
+  }
+
+  function centeredEffects(effects, counts) {
+    let weighted = 0;
+    let weight = 0;
+    effects.forEach((value, key) => {
+      const n = counts.get(key) || 0;
+      weighted += value * n;
+      weight += n;
+    });
+    const mean = weight ? weighted / weight : 0;
+    const centered = new Map();
+    effects.forEach((value, key) => centered.set(key, value - mean));
+    return centered;
+  }
+
+  function buildFantasyFallback(rows, season) {
+    const positions = new Set(['QB', 'RB', 'WR', 'TE']);
+    const current = rows.filter((row) => {
+      const rowSeason = Number(row.season);
+      const position = fantasyPosition(row.position);
+      return rowSeason === Number(season) &&
+        (!row.season_type || String(row.season_type).toUpperCase() === 'REG') &&
+        positions.has(position) &&
+        row.team &&
+        row.opponent_team &&
+        num(row.fantasy_points_ppr) !== null;
+    }).map((row) => ({
+      player_id: row.player_id || row.player_name,
+      player_name: row.player_display_name || row.player_name || row.player_id,
+      position: fantasyPosition(row.position),
+      team: row.team,
+      opponent_team: row.opponent_team,
+      week: Number(row.week) || 0,
+      game_id: row.game_id || [row.season, row.week, row.team, row.opponent_team].join('_'),
+      points: num(row.fantasy_points_ppr) || 0
+    }));
+
+    if (!current.length) return [];
+
+    const throughWeek = Math.max(...current.map((row) => row.week));
+    const gameGroups = new Map();
+
+    current.forEach((row) => {
+      const key = [row.game_id, row.team, row.position].join('|');
+      if (!gameGroups.has(key)) {
+        gameGroups.set(key, {
+          game_id: row.game_id,
+          team: row.team,
+          opponent_team: row.opponent_team,
+          position: row.position,
+          points: 0
+        });
+      }
+      gameGroups.get(key).points += row.points;
+    });
+
+    const gameRows = Array.from(gameGroups.values());
+    const factorMap = new Map();
+
+    positions.forEach((position) => {
+      const posRows = gameRows.filter((row) => row.position === position);
+      if (!posRows.length) return;
+
+      const leagueMean = posRows.reduce((sum, row) => sum + row.points, 0) / posRows.length;
+      if (!(leagueMean > 0)) return;
+
+      const offenseCounts = new Map();
+      const defenseCounts = new Map();
+      posRows.forEach((row) => {
+        offenseCounts.set(row.team, (offenseCounts.get(row.team) || 0) + 1);
+        defenseCounts.set(row.opponent_team, (defenseCounts.get(row.opponent_team) || 0) + 1);
+      });
+
+      let offense = new Map();
+      let defense = new Map();
+      offenseCounts.forEach((_, key) => offense.set(key, 0));
+      defenseCounts.forEach((_, key) => defense.set(key, 0));
+
+      for (let iteration = 0; iteration < 75; iteration += 1) {
+        const oldOffense = offense;
+        const oldDefense = defense;
+
+        const offenseBuckets = new Map();
+        posRows.forEach((row) => {
+          const residual = row.points - leagueMean - (defense.get(row.opponent_team) || 0);
+          const bucket = offenseBuckets.get(row.team) || { sum: 0, n: 0 };
+          bucket.sum += residual;
+          bucket.n += 1;
+          offenseBuckets.set(row.team, bucket);
+        });
+
+        const newOffense = new Map();
+        offenseBuckets.forEach((bucket, team) => {
+          const shrink = bucket.n / (bucket.n + 3);
+          newOffense.set(team, shrink * (bucket.sum / bucket.n));
+        });
+        offense = centeredEffects(newOffense, offenseCounts);
+
+        const defenseBuckets = new Map();
+        posRows.forEach((row) => {
+          const residual = row.points - leagueMean - (offense.get(row.team) || 0);
+          const bucket = defenseBuckets.get(row.opponent_team) || { sum: 0, n: 0 };
+          bucket.sum += residual;
+          bucket.n += 1;
+          defenseBuckets.set(row.opponent_team, bucket);
+        });
+
+        const newDefense = new Map();
+        defenseBuckets.forEach((bucket, team) => {
+          const shrink = bucket.n / (bucket.n + 3);
+          newDefense.set(team, shrink * (bucket.sum / bucket.n));
+        });
+        defense = centeredEffects(newDefense, defenseCounts);
+
+        let delta = 0;
+        offense.forEach((value, key) => {
+          delta = Math.max(delta, Math.abs(value - (oldOffense.get(key) || 0)));
+        });
+        defense.forEach((value, key) => {
+          delta = Math.max(delta, Math.abs(value - (oldDefense.get(key) || 0)));
+        });
+        if (delta < 1e-8) break;
+      }
+
+      posRows.forEach((row) => {
+        let expectedAllowed = leagueMean + (defense.get(row.opponent_team) || 0);
+        expectedAllowed = Math.max(leagueMean * 0.80, Math.min(leagueMean / 0.80, expectedAllowed));
+        const factor = Math.max(0.80, Math.min(1.25, leagueMean / expectedAllowed));
+        factorMap.set([row.game_id, row.team, row.position].join('|'), factor);
+      });
+    });
+
+    const players = new Map();
+    current.forEach((row) => {
+      const playerKey = [row.player_id, row.position].join('|');
+      const factor = factorMap.get([row.game_id, row.team, row.position].join('|')) || 1;
+      if (!players.has(playerKey)) {
+        players.set(playerKey, {
+          player_id: row.player_id,
+          player_name: row.player_name,
+          position: row.position,
+          team: row.team,
+          latest_week: row.week,
+          games: new Set(),
+          raw: 0,
+          adjusted: 0,
+          factor: 0,
+          rows: 0
+        });
+      }
+      const player = players.get(playerKey);
+      player.games.add(row.game_id);
+      player.raw += row.points;
+      player.adjusted += row.points * factor;
+      player.factor += factor;
+      player.rows += 1;
+      if (row.week >= player.latest_week) {
+        player.team = row.team;
+        player.player_name = row.player_name;
+        player.latest_week = row.week;
+      }
+    });
+
+    const minGames = throughWeek <= 1 ? 1 : 2;
+    const built = Array.from(players.values())
+      .filter((player) => player.games.size >= minGames)
+      .map((player) => {
+        const games = player.games.size;
+        const raw = player.raw / games;
+        const adjusted = player.adjusted / games;
+        return {
+          season: season,
+          through_week: throughWeek,
+          position: player.position,
+          player_id: player.player_id,
+          player_name: player.player_name,
+          team: player.team,
+          games: games,
+          raw_fppg: raw,
+          adjusted_fppg: adjusted,
+          avg_opponent_factor: player.factor / Math.max(1, player.rows),
+          opponent_adjustment_pct: Math.abs(raw) > 1e-12 ? adjusted / raw - 1 : 0
+        };
+      })
+      .filter((row) => row.raw_fppg > 0);
+
+    positions.forEach((position) => {
+      built
+        .filter((row) => row.position === position)
+        .sort((a, b) => b.adjusted_fppg - a.adjusted_fppg || b.raw_fppg - a.raw_fppg)
+        .forEach((row, index) => {
+          row.rank = index + 1;
+        });
+    });
+
+    return built;
+  }
+
+  async function loadFantasyFallback() {
+    if (state.fantasy.length || state.fantasyLoading) return;
+
+    const season = state.board.length
+      ? Number(state.board[0].season)
+      : new Date().getFullYear();
+
+    state.fantasyLoading = true;
+    state.fantasyError = false;
+    renderFantasy();
+
+    try {
+      const url = 'https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_' + season + '.csv';
+      const rows = parseCsv(await fetchText(url));
+      state.fantasy = buildFantasyFallback(rows, season);
+      state.fantasyError = state.fantasy.length === 0;
+    } catch (error) {
+      console.warn('Fantasy fallback:', error.message);
+      state.fantasyError = true;
+    } finally {
+      state.fantasyLoading = false;
+      renderFantasy();
+    }
   }
 
   function renderStats() {
@@ -824,7 +1123,7 @@
   }
 
   function setRoute(route) {
-    const valid = ['week', 'stats', 'props', 'history', 'model'];
+    const valid = ['week', 'stats', 'fantasy', 'props', 'history', 'model'];
     if (!valid.includes(route)) route = 'week';
 
     document.querySelectorAll('.page').forEach((page) => {
@@ -928,6 +1227,8 @@
 
     $('weekFilter').addEventListener('change', renderUpcoming);
     $('statsSearch').addEventListener('input', renderStats);
+    $('fantasyPosition').addEventListener('change', renderFantasy);
+    $('fantasySearch').addEventListener('input', renderFantasy);
     $('propMarket').addEventListener('change', renderProps);
     $('propSearch').addEventListener('input', renderProps);
     $('historyWeek').addEventListener('change', renderHistory);
@@ -950,6 +1251,7 @@
     const [
       board,
       teamStats,
+      fantasy,
       props,
       propEdges,
       gameHistory,
@@ -961,6 +1263,7 @@
     ] = await Promise.all([
       fetchCsv(PATHS.board),
       fetchCsv(PATHS.teamStats),
+      fetchCsv(PATHS.fantasy),
       fetchCsv(PATHS.props),
       fetchCsv(PATHS.propEdges),
       fetchCsv(PATHS.gameHistory),
@@ -973,6 +1276,7 @@
 
     state.board = board;
     state.teamStats = teamStats;
+    state.fantasy = fantasy;
     state.props = props;
     state.propEdges = propEdges;
     state.gameHistory = gameHistory;
@@ -986,6 +1290,8 @@
     renderUpcoming();
     renderCompleted();
     renderStats();
+    renderFantasy();
+    if (!state.fantasy.length) loadFantasyFallback();
 
     setupPropMarkets();
     renderPropCallout();

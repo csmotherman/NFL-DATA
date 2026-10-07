@@ -1,6 +1,6 @@
 {
   "status": "waiting_for_forward_market_history",
-  "generated_at_utc": "2026-10-05T23:04:25+00:00",
+  "generated_at_utc": "2026-10-07T01:04:27+00:00",
   "archived_quotes": 0,
   "selected_quotes": 0,
   "message": "No executable archived prop quotes are available yet. Configure live prop odds or add manual lines."

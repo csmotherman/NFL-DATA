@@ -678,11 +678,11 @@
       "production_mode": "VALIDATED",
       "regime_check": {
         "alert": false,
-        "p_value": 0.1201,
+        "p_value": 0.1906,
         "expected_win_rate": 0.544,
-        "current_win_rate": 0.3333,
-        "bets": 12,
-        "wins": 4,
+        "current_win_rate": 0.3846,
+        "bets": 13,
+        "wins": 5,
         "losses": 8,
         "reason": "Current-season shadow has not crossed the suspension threshold."
       },
@@ -878,13 +878,13 @@
       },
       "current_season_shadow": {
         "season": 2026,
-        "games": 58,
-        "bets": 12,
-        "wins": 4,
+        "games": 59,
+        "bets": 13,
+        "wins": 5,
         "losses": 8,
-        "win_rate": 0.3333,
-        "roi": -0.371,
-        "profit_units": -4.452
+        "win_rate": 0.3846,
+        "roi": -0.2783,
+        "profit_units": -3.619
       },
       "model_comparison": {
         "status": "ok",
@@ -3243,7 +3243,7 @@
       },
       "current_season_shadow": {
         "season": 2026,
-        "games": 63,
+        "games": 64,
         "bets": 0,
         "wins": 0,
         "losses": 0,
@@ -5196,11 +5196,11 @@
       "production_mode": "VALIDATED",
       "regime_check": {
         "alert": false,
-        "p_value": 0.1201,
+        "p_value": 0.1906,
         "expected_win_rate": 0.544,
-        "current_win_rate": 0.3333,
-        "bets": 12,
-        "wins": 4,
+        "current_win_rate": 0.3846,
+        "bets": 13,
+        "wins": 5,
         "losses": 8,
         "reason": "Current-season shadow has not crossed the suspension threshold."
       },
@@ -5396,13 +5396,13 @@
       },
       "current_season_shadow": {
         "season": 2026,
-        "games": 58,
-        "bets": 12,
-        "wins": 4,
+        "games": 59,
+        "bets": 13,
+        "wins": 5,
         "losses": 8,
-        "win_rate": 0.3333,
-        "roi": -0.371,
-        "profit_units": -4.452
+        "win_rate": 0.3846,
+        "roi": -0.2783,
+        "profit_units": -3.619
       },
       "model_comparison": {
         "status": "ok",
@@ -7761,7 +7761,7 @@
       },
       "current_season_shadow": {
         "season": 2026,
-        "games": 63,
+        "games": 64,
         "bets": 0,
         "wins": 0,
         "losses": 0,
@@ -9267,20 +9267,20 @@
     "roi": 0.0163,
     "method": "season-2025 total classifier fit on seasons <2025; strategy frozen through 2021; outcomes graded only after recommendations"
   },
-  "generated_at_utc": "2026-10-05T23:03:09Z",
+  "generated_at_utc": "2026-10-07T01:03:27Z",
   "training_start_season": 2014,
   "current_season": 2026,
-  "target_week": 4,
+  "target_week": 5,
   "rolling_games": 8,
   "min_rolling_games": 3,
   "adjusted_epa_ridge_alpha": 2.5,
   "adjusted_epa_method": "current-season play-weighted additive offense/defense ridge model; defense is EPA allowed and lower is better",
-  "historical_training_games_final_fit": 2998,
+  "historical_training_games_final_fit": 2999,
   "spread_watch_threshold": 3.0,
   "total_watch_threshold": 3.0,
   "validated_spread_threshold": 0.02,
   "validated_total_threshold": null,
-  "candidate_count": 3,
+  "candidate_count": 5,
   "notes": [
     "Independent football projections remain a descriptive sanity check only.",
     "Spread bets directly model home-cover probability; total bets directly model over probability.",

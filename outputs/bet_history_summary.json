@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-10-05T23:03:10+00:00",
+  "generated_at_utc": "2026-10-07T01:03:29+00:00",
   "integrity_note": "Forward records only. Weeks are locked before any target-week game has a final score; retroactive reruns are never graded.",
   "spread_qualified": {
     "decisions": 0,
@@ -20,12 +20,12 @@
     "roi_per_bet": null
   },
   "moneyline_all_model_picks": {
-    "decisions": 15,
+    "decisions": 16,
     "wins": 0,
-    "losses": 15,
+    "losses": 16,
     "pushes": 0,
     "hit_rate": 0.0,
-    "profit_units": -15.0,
+    "profit_units": -16.0,
     "roi_per_bet": -1.0
   }
 }

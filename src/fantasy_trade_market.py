@@ -211,6 +211,28 @@ def main():
     result = build(players, schedules, through_week)
     if result.empty:
         raise RuntimeError("No players with at least three games and a ROS schedule")
+    # Exception feed records verified material injuries and role uncertainty.
+    # Do not auto-remove old reports: stale health evidence must be rechecked.
+    health_file = Path("inputs/fantasy_status_overrides.csv")
+    result["health_status"] = ""
+    result["health_asof"] = ""
+    result["health_context"] = ""
+    if health_file.exists():
+        health = pd.read_csv(health_file).fillna("")
+        for row in health.itertuples(index=False):
+            match = result["player_name"].eq(str(row.player_name))
+            if not match.any():
+                continue
+            result.loc[match, "health_status"] = str(row.status)
+            result.loc[match, "health_asof"] = str(row.asof)
+            result.loc[match, "health_context"] = str(row.context)
+            result.loc[match, "trade_screen"] = "INJURY_REVIEW"
+            result.loc[match, "confidence_note"] = (
+                "Availability or role materially uncertain. Do not trade solely "
+                "on this healthy-usage projection; verify current news."
+            )
+            # Missing weeks are not priced by the unconditional PPR projection.
+            result.loc[match, "projected_ros_ppr_total"] = np.nan
     output = Path(args.output_dir)
     output.mkdir(parents=True, exist_ok=True)
     result.to_csv(output / "fantasy_trade_market.csv", index=False)
@@ -227,6 +249,7 @@ def main():
             "PPR expected from same-season position averages; may undervalue elite per-play skill",
             "QB trade labels suppressed until passing/rushing talent priors validated",
             "Sell-high labels require a touchdown-dependent role without elite volume",
+            "Manual injury overrides are sticky and must be reverified; unadjusted healthy PPR estimates are not valid availability forecasts",
             "No playoff schedule after Week 17, no Week 18",
             "No full expected touchdowns by goal-line/rz opportunities",
             "Remaining opponent scores shrink team-position output for opponent strength, not individual coverage",

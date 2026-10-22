@@ -2,7 +2,7 @@
 import unittest
 import pandas as pd
 import numpy as np
-from src.fantasy_trade_market import player_skill_rates, projected_role, team_pace_context
+from src.fantasy_trade_market import player_skill_rates, projected_role, team_pace_context, STAT_COLS
 
 
 class FantasyModelContract(unittest.TestCase):
@@ -21,6 +21,8 @@ class FantasyModelContract(unittest.TestCase):
                  rushing_tds=3., targets=70., receptions=30., receiving_yards=230.,
                  receiving_tds=1., history_weight=.65),
         ])
+        for c in STAT_COLS:
+            if c not in cur: cur[c]=0.
         skill = player_skill_rates(cur, past)
         self.assertGreater(skill[("elite", "RB")]["rush_yards"], skill[("avg", "RB")]["rush_yards"])
         self.assertGreater(skill[("elite", "RB")]["rec_yards"], skill[("avg", "RB")]["rec_yards"])
@@ -47,6 +49,8 @@ class FantasyModelContract(unittest.TestCase):
               rushing_yards=0,rushing_tds=0,targets=6,receptions=3,
               receiving_yards=55,receiving_tds=0)])
         history = pd.DataFrame(columns=list(cur.columns) + ["history_weight"])
+        for c in STAT_COLS:
+            if c not in cur: cur[c]=0.
         rate = player_skill_rates(cur, history)[("rookie","WR")]
         self.assertTrue(all(np.isfinite(x) for x in rate.values()))
         self.assertGreater(rate["rec_yards"], 0)

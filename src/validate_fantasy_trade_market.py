@@ -50,7 +50,7 @@ def validate(seasons=(2024, 2025), output_dir="outputs"):
                 "model_bias": round(float((p-t).mean()), 4),
                 "model_spearman": round(float(p.corr(t, method="spearman")), 4) if len(part)>2 else None,
             })
-        pooled.append(joined[["season", "position", "player_id", "player_name", "actual_ros_ppg", "projected_ros_ppr_pg", "ppr_pg"]].assign(season=season))
+        pooled.append(joined[["position", "player_id", "player_name", "actual_ros_ppg", "projected_ros_ppr_pg", "ppr_pg"]].assign(season=season))
     if not pooled:
         raise RuntimeError("No valid historical holdout sample")
     all_rows = pd.concat(pooled, ignore_index=True)

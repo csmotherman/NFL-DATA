@@ -177,6 +177,7 @@ def build(players: pd.DataFrame, schedule: dict, through_week: int) -> pd.DataFr
             "past_opponent_adjusted_defense_effect": round(past, 3),
             "remaining_opponent_adjusted_defense_effect": round(future, 3),
             "remaining_games": len(opps),
+            "past_opponents": " | ".join(f"W{int(wk)} {opp}" for wk, opp in zip(p["week"], p["opponent_team"])),
             "ros_opponents": " | ".join(f"W{wk} {opp}" for wk, opp in opps),
             "projected_ros_ppr_pg": round(ros_pg, 3),
             "projected_ros_ppr_total": round(ros_pg * len(opps), 3),
@@ -188,6 +189,9 @@ def build(players: pd.DataFrame, schedule: dict, through_week: int) -> pd.DataFr
         return df
     df = df.sort_values(["position", "ppr_above_projection_pg"], ascending=[True, False])
     df["ros_position_rank"] = df.groupby("position")["projected_ros_ppr_pg"].rank(ascending=False, method="min").astype(int)
+    team_sos = df[["team", "position", "remaining_opponent_adjusted_defense_effect"]].drop_duplicates(["team", "position"]).copy()
+    team_sos["ros_sos_rank_easiest"] = team_sos.groupby("position")["remaining_opponent_adjusted_defense_effect"].rank(ascending=False, method="min").astype(int)
+    df = df.merge(team_sos[["team", "position", "ros_sos_rank_easiest"]], on=["team", "position"], how="left")
     return df
 
 

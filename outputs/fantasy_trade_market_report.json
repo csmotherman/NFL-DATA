@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-10-22T14:35:53.079601+00:00",
+  "generated_at_utc": "2026-10-22T15:14:33.663331+00:00",
   "season": 2026,
   "through_week": 6,
   "remaining_weeks": [
@@ -8,22 +8,22 @@
   ],
   "rows": 391,
   "signals": {
-    "WATCH": 372,
-    "BUY_LOW": 13,
-    "SELL_HIGH": 4,
+    "WATCH": 377,
+    "BUY_LOW": 10,
+    "SELL_HIGH": 2,
     "INJURY_REVIEW": 2
   },
-  "model_type": "unvalidated opportunity-regression and opponent-adjustment screen",
+  "model_type": "player-specific historical empirical-Bayes skill + stable team-share volume + shrunk opponent adjustment",
   "limitations": [
     "Not an empirically validated rest-of-season player forecast or market-price model",
     "No snap share, routes run, injury, depth-chart, or quarterback-change adjustment",
     "Recent usage is the last three games played, not necessarily last three team games",
-    "PPR expected from same-season position averages; may undervalue elite per-play skill",
+    "Player efficiency uses up to three prior seasons and sample-size positional priors; does not incorporate tracking data",
     "QB trade labels suppressed until passing/rushing talent priors validated",
     "Sell-high labels require a touchdown-dependent role without elite volume",
     "Manual injury overrides are sticky and must be reverified; unadjusted healthy PPR estimates are not valid availability forecasts",
     "No playoff schedule after Week 17, no Week 18",
-    "No full expected touchdowns by goal-line/rz opportunities",
+    "Touchdown regression uses past carry/target rates; goal-line and red-zone participation not explicitly available",
     "Remaining opponent scores shrink team-position output for opponent strength, not individual coverage"
   ]
 }

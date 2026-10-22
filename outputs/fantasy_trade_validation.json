@@ -1,0 +1,71 @@
+{
+  "generated_at_utc": "2026-10-22T15:14:48.931859+00:00",
+  "folds": [
+    {
+      "season": 2024,
+      "position": "RB",
+      "players": 93,
+      "model_mae": 2.7541,
+      "season_ppr_baseline_mae": 2.7872,
+      "model_bias": 0.2627,
+      "model_spearman": 0.8197
+    },
+    {
+      "season": 2024,
+      "position": "TE",
+      "players": 70,
+      "model_mae": 2.2543,
+      "season_ppr_baseline_mae": 2.2678,
+      "model_bias": -1.002,
+      "model_spearman": 0.7961
+    },
+    {
+      "season": 2024,
+      "position": "WR",
+      "players": 135,
+      "model_mae": 3.0156,
+      "season_ppr_baseline_mae": 2.8296,
+      "model_bias": -0.2043,
+      "model_spearman": 0.7308
+    },
+    {
+      "season": 2025,
+      "position": "RB",
+      "players": 88,
+      "model_mae": 2.6013,
+      "season_ppr_baseline_mae": 2.7192,
+      "model_bias": -0.1082,
+      "model_spearman": 0.846
+    },
+    {
+      "season": 2025,
+      "position": "TE",
+      "players": 79,
+      "model_mae": 1.9215,
+      "season_ppr_baseline_mae": 2.1775,
+      "model_bias": -0.4495,
+      "model_spearman": 0.8355
+    },
+    {
+      "season": 2025,
+      "position": "WR",
+      "players": 144,
+      "model_mae": 2.4799,
+      "season_ppr_baseline_mae": 2.7325,
+      "model_bias": 0.1484,
+      "model_spearman": 0.8081
+    }
+  ],
+  "total_players_season_rows": 609,
+  "model_mae": 2.5597,
+  "season_ppr_baseline_mae": 2.635,
+  "beats_season_baseline": true,
+  "method": "Week-6 cutoff; prior years only as skill priors; compare Weeks 7-17 realized per active game",
+  "limitations": [
+    "Selection conditions on playing at least three ROS games, excluding worst injury outcomes",
+    "Not true player-season time-series cross-validation beyond these two holdouts",
+    "No team-by-team injury, roster, coach or QB rotation features",
+    "Season averages are a demanding but useful na\u00efve baseline",
+    "Do not use current-season ROS rankings as calibrated forecasts if model fails baseline"
+  ]
+}

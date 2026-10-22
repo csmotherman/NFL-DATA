@@ -1,0 +1,25 @@
+{
+  "generated_at_utc": "2026-10-22T14:15:41.447322+00:00",
+  "season": 2026,
+  "through_week": 6,
+  "remaining_weeks": [
+    7,
+    17
+  ],
+  "rows": 391,
+  "signals": {
+    "WATCH": 348,
+    "BUY_LOW": 23,
+    "SELL_HIGH": 20
+  },
+  "model_type": "unvalidated opportunity-regression and opponent-adjustment screen",
+  "limitations": [
+    "Not an empirically validated rest-of-season player forecast or market-price model",
+    "No snap share, routes run, injury, depth-chart, or quarterback-change adjustment",
+    "Recent usage is the last three games played, not necessarily last three team games",
+    "PPR expected from same-season position averages; may undervalue elite per-play skill",
+    "No playoff schedule after Week 17, no Week 18",
+    "No full expected touchdowns by goal-line/rz opportunities",
+    "Remaining opponent scores shrink team-position output for opponent strength, not individual coverage"
+  ]
+}

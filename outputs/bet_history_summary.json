@@ -1,14 +1,14 @@
 {
-  "generated_at_utc": "2026-10-15T19:45:20+00:00",
+  "generated_at_utc": "2026-10-22T14:14:05+00:00",
   "integrity_note": "Forward records only. Weeks are locked before any target-week game has a final score; retroactive reruns are never graded.",
   "spread_qualified": {
-    "decisions": 5,
+    "decisions": 6,
     "wins": 4,
-    "losses": 1,
+    "losses": 2,
     "pushes": 0,
-    "hit_rate": 0.8,
-    "profit_units": 2.739,
-    "roi_per_bet": 0.5478
+    "hit_rate": 0.6667,
+    "profit_units": 1.739,
+    "roi_per_bet": 0.2899
   },
   "total_qualified": {
     "decisions": 0,
@@ -20,12 +20,12 @@
     "roi_per_bet": null
   },
   "moneyline_all_model_picks": {
-    "decisions": 30,
+    "decisions": 44,
     "wins": 0,
-    "losses": 30,
+    "losses": 44,
     "pushes": 1,
     "hit_rate": 0.0,
-    "profit_units": -30.0,
-    "roi_per_bet": -0.9677
+    "profit_units": -44.0,
+    "roi_per_bet": -0.9778
   }
 }

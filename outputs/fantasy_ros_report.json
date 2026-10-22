@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-10-15T19:46:38+00:00",
+  "generated_at_utc": "2026-10-22T14:15:33+00:00",
   "season": 2026,
   "snapshot_weeks": [
     1,
@@ -18,19 +18,19 @@
           "season": 2022,
           "rows": 912,
           "players": 76,
-          "model_mae": 6.211,
+          "model_mae": 6.225,
           "baseline_mae": 6.758,
-          "weekly_rank_corr": 0.3865,
-          "ros_rank_corr": 0.5712
+          "weekly_rank_corr": 0.3822,
+          "ros_rank_corr": 0.5757
         },
         {
           "season": 2023,
           "rows": 936,
           "players": 78,
-          "model_mae": 5.53,
+          "model_mae": 5.512,
           "baseline_mae": 5.691,
-          "weekly_rank_corr": 0.483,
-          "ros_rank_corr": 0.6905
+          "weekly_rank_corr": 0.4836,
+          "ros_rank_corr": 0.6989
         },
         {
           "season": 2024,
@@ -45,10 +45,10 @@
           "season": 2025,
           "rows": 888,
           "players": 74,
-          "model_mae": 5.862,
+          "model_mae": 5.868,
           "baseline_mae": 5.965,
-          "weekly_rank_corr": 0.4863,
-          "ros_rank_corr": 0.6542
+          "weekly_rank_corr": 0.487,
+          "ros_rank_corr": 0.6564
         }
       ],
       "rows": 3648,
@@ -63,41 +63,41 @@
           "season": 2022,
           "rows": 1428,
           "players": 119,
-          "model_mae": 5.858,
+          "model_mae": 5.849,
           "baseline_mae": 6.386,
-          "weekly_rank_corr": 0.4307,
-          "ros_rank_corr": 0.6383
+          "weekly_rank_corr": 0.4316,
+          "ros_rank_corr": 0.6382
         },
         {
           "season": 2023,
           "rows": 1368,
           "players": 114,
-          "model_mae": 5.441,
+          "model_mae": 5.447,
           "baseline_mae": 6.119,
-          "weekly_rank_corr": 0.4655,
-          "ros_rank_corr": 0.7137
+          "weekly_rank_corr": 0.4666,
+          "ros_rank_corr": 0.7166
         },
         {
           "season": 2024,
           "rows": 1344,
           "players": 112,
-          "model_mae": 5.837,
+          "model_mae": 5.826,
           "baseline_mae": 6.185,
-          "weekly_rank_corr": 0.3518,
-          "ros_rank_corr": 0.6205
+          "weekly_rank_corr": 0.3499,
+          "ros_rank_corr": 0.6173
         },
         {
           "season": 2025,
           "rows": 1332,
           "players": 111,
-          "model_mae": 5.704,
+          "model_mae": 5.728,
           "baseline_mae": 6.267,
-          "weekly_rank_corr": 0.3584,
-          "ros_rank_corr": 0.5489
+          "weekly_rank_corr": 0.3553,
+          "ros_rank_corr": 0.5472
         }
       ],
       "rows": 5472,
-      "model_mae": 5.711,
+      "model_mae": 5.713,
       "baseline_mae": 6.241,
       "model_beats_baseline": true
     }

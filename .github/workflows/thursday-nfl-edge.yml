@@ -56,7 +56,10 @@ jobs:
         run: python -m pip install -r requirements.txt
 
       - name: Compile check
-        run: python -m py_compile src/nfl_edge.py src/market_strategy.py src/player_props.py src/fantasy_ros.py src/fetch_prop_lines.py src/grade_game_history.py src/lock_forward_props.py src/grade_prop_history.py src/fantasy_leaderboard.py src/fantasy_trade_market.py
+        run: python -m py_compile src/nfl_edge.py src/market_strategy.py src/player_props.py src/fantasy_ros.py src/fetch_prop_lines.py src/grade_game_history.py src/lock_forward_props.py src/grade_prop_history.py src/fantasy_leaderboard.py src/fantasy_trade_market.py src/validate_fantasy_trade_market.py
+
+      - name: Fantasy regression tests
+        run: PYTHONPATH=src python -m unittest discover -s tests -p test_fantasy_trade_market.py -v
 
       - name: Run weekly model
         shell: bash
@@ -134,6 +137,9 @@ jobs:
             --season "$SEASON" \
             --end-week 17 \
             --output-dir outputs
+
+      - name: Historical fantasy ROS validation
+        run: PYTHONPATH=src python src/validate_fantasy_trade_market.py
 
       - name: Lock forward player prop edges
         run: |

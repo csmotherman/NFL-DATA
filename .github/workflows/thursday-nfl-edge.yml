@@ -5,6 +5,7 @@ on:
     branches: ["main"]
     paths:
       - "src/**"
+      - "tests/test_fantasy_trade_market.py"
       - "requirements.txt"
       - "inputs/**"
       - ".github/workflows/thursday-nfl-edge.yml"

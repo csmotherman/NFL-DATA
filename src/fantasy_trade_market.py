@@ -140,7 +140,27 @@ def build(players: pd.DataFrame, schedule: dict, through_week: int) -> pd.DataFr
         targets = p["targets"].sum()
         min_role = 12 if pos == "QB" else 6
         reliable = games >= 5 and opp_pg >= min_role
-        signal = "SELL_HIGH" if gap >= 2.5 and reliable else "BUY_LOW" if gap <= -2.5 and reliable else "WATCH"
+        td_rate = div(td, opportunities)
+        # A scoring spike is not a sell signal when elite volume supports it.
+        # These are conservative candidate flags, not predicted trade returns.
+        touchdown_dependent = (
+            pos == "WR" and td_rate >= .075
+            and p["targets"].mean() < 9 and p["target_share"].mean() < .27
+        ) or (
+            pos == "RB" and td_rate >= .055
+            and opp_pg < 20 and p["targets"].mean() < 5
+        ) or (
+            pos == "TE" and td_rate >= .08
+            and p["targets"].mean() < 8
+        )
+        # QB passing/rushing skill needs historical player priors; suppress
+        # simplistic same-season league-average buy/sell calls for QBs.
+        signal = "WATCH"
+        if reliable and pos != "QB":
+            if gap >= 2.5 and touchdown_dependent:
+                signal = "SELL_HIGH"
+            elif gap <= -2.5:
+                signal = "BUY_LOW"
         records.append({
             "player_id": pid, "player_name": latest["player_name"], "position": pos,
             "team": team, "games": games, "through_week": through_week,
@@ -201,6 +221,8 @@ def main():
             "No snap share, routes run, injury, depth-chart, or quarterback-change adjustment",
             "Recent usage is the last three games played, not necessarily last three team games",
             "PPR expected from same-season position averages; may undervalue elite per-play skill",
+            "QB trade labels suppressed until passing/rushing talent priors validated",
+            "Sell-high labels require a touchdown-dependent role without elite volume",
             "No playoff schedule after Week 17, no Week 18",
             "No full expected touchdowns by goal-line/rz opportunities",
             "Remaining opponent scores shrink team-position output for opponent strength, not individual coverage",

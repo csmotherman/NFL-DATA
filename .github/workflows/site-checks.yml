@@ -1,0 +1,29 @@
+name: NFL Matchup Site Checks
+on:
+  push:
+    branches: [main]
+    paths:
+      - index.html
+      - site.js
+      - site.css
+      - matchup.js
+      - vercel.json
+      - tests/test_matchup.js
+      - .github/workflows/site-checks.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  browser-source-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check JavaScript syntax
+        run: node --check site.js && node --check matchup.js
+      - name: Run matchup calculation and integration tests
+        run: node --test tests/test_matchup.js

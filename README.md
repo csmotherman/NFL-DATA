@@ -144,3 +144,11 @@ PROPLINE_API_KEY
 When that secret exists, the workflow automatically refreshes `inputs/player_prop_lines.csv` before running the player models. If the secret is absent, the pipeline falls back to whatever manual CSV is already present.
 
 The live feed is used only as the market comparison layer. It does not replace nflverse as the football/statistical source.
+
+## Matchup Breakdown (descriptive, not a betting model)
+
+Use the **Matchup** tab to select any two teams. Both directions are shown: Team A offense vs Team B defense, and vice versa. Season-long opponent-adjusted EPA/play, per dropback and per carry come from `outputs/team_stats.csv`; recent unadjusted yards, first-down, completion, CPOE, sack and turnover rates come from rolling `outputs/team_state.csv`.
+
+For each split, compute a sample standard deviation and empirical midrank percentile across the available NFL teams, separately for offensive production and defensive production allowed. Reverse the sign for offensive sack/turnover rates and defensive sacks/takeaways, where lower opponent pressure is favorable to an offense. The matchup index = (offense league z-score + defense *susceptibility* league z-score) / 2. Side-to-side index gaps describe which offense has the relatively easier efficiency environment. Indices are **not** outcome probabilities, predicted yardage, projected final scores, or betting edges. Percentiles describe 32 teams, not probabilistic odds, and the opponent-adjusted EPA splits are regularized early in the season. A strength-vs-strength matchup can have a neutral composite index. If data are missing or have zero variance, the interface suppresses the edge instead of inventing one.
+
+The Matchup tab shares the weekly pipeline data refresh and is deployed by Vercel via `matchup.js`. `NFL Matchup Site Checks` runs independent JavaScript syntax and calculation tests on frontend changes.

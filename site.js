@@ -4,6 +4,7 @@
   const PATHS = {
     board: 'outputs/latest_betting_board.csv',
     teamStats: 'outputs/team_stats.csv',
+    teamState: 'outputs/team_state.csv',
     fantasy: 'outputs/fantasy_leaderboard.csv',
     props: 'outputs/latest_player_props.csv',
     propEdges: 'outputs/latest_player_prop_edges.csv',
@@ -18,6 +19,7 @@
   const state = {
     board: [],
     teamStats: [],
+    teamState: [],
     fantasy: [],
     fantasyLoading: false,
     fantasyError: false,
@@ -1251,6 +1253,7 @@
     const [
       board,
       teamStats,
+      teamState,
       fantasy,
       props,
       propEdges,
@@ -1263,6 +1266,7 @@
     ] = await Promise.all([
       fetchCsv(PATHS.board),
       fetchCsv(PATHS.teamStats),
+      fetchCsv(PATHS.teamState),
       fetchCsv(PATHS.fantasy),
       fetchCsv(PATHS.props),
       fetchCsv(PATHS.propEdges),
@@ -1276,6 +1280,7 @@
 
     state.board = board;
     state.teamStats = teamStats;
+    state.teamState = teamState;
     state.fantasy = fantasy;
     state.props = props;
     state.propEdges = propEdges;
@@ -1290,6 +1295,7 @@
     renderUpcoming();
     renderCompleted();
     renderStats();
+    if (window.NFLMatchup) window.NFLMatchup.init(state.teamStats, state.teamState, state.board, state.modelReport);
     renderFantasy();
     if (!state.fantasy.length) loadFantasyFallback();
 

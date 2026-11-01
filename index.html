@@ -14,6 +14,7 @@
       <nav class="site-nav">
         <button class="nav-link is-active" data-route="week">This Week</button>
         <button class="nav-link" data-route="stats">Stats</button>
+        <button class="nav-link" data-route="matchup">Matchup</button>
         <button class="nav-link" data-route="fantasy">Fantasy</button>
         <button class="nav-link" data-route="props">Player Props</button>
         <button class="nav-link" data-route="history">History</button>
@@ -152,6 +153,32 @@
       </section>
     </section>
 
+
+
+    <section class="page" id="page-matchup">
+      <div class="page-header">
+        <div>
+          <h1>Matchup Breakdown</h1>
+          <p>Compare any two NFL teams: offense against opposing defense, split by passing, rushing and supporting efficiency measures.</p>
+        </div>
+      </div>
+
+      <div class="matchup-picker" aria-label="Select matchup teams">
+        <label><span>Team A</span><select id="matchupTeamA" aria-label="First team"></select></label>
+        <button type="button" class="matchup-swap" id="matchupSwap" aria-label="Swap teams">⇄ Swap</button>
+        <label><span>Team B</span><select id="matchupTeamB" aria-label="Second team"></select></label>
+      </div>
+      <div class="matchup-meta" id="matchupMeta" aria-live="polite"></div>
+      <div class="matchup-warning" id="matchupWarning" role="status"></div>
+
+      <div class="notice matchup-method">
+        <strong>How to read the edges:</strong> Each side's offense and opponent's defense allowed are compared with their own league distributions.
+        The <strong>matchup index</strong> averages offense efficiency z-score and defensive susceptibility z-score (higher = more offense-friendly).
+        Percentiles are empirical midranks among NFL teams; high defensive susceptibility means more production allowed, <em>not</em> a strong defense.
+        These are descriptive statistical mismatches—not predicted points, win probabilities, calibrated game expectations, or betting recommendations.
+      </div>
+      <div id="matchupResults" aria-live="polite"><div class="notice">Loading matchup statistics…</div></div>
+    </section>
 
     <section class="page" id="page-fantasy">
       <div class="page-header">
@@ -339,6 +366,7 @@
     <span id="refreshStamp"></span>
   </footer>
 
+  <script src="matchup.js" defer></script>
   <script src="site.js" defer></script>
 </body>
 </html>

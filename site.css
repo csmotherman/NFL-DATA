@@ -579,3 +579,70 @@ button {
     font-size: 11px;
   }
 }
+
+/* Matchup research */
+.matchup-picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  margin: 22px 0 8px;
+  border: 1px solid var(--gray-3);
+  background: var(--gray-5);
+  padding: 18px;
+}
+.matchup-picker label { display: grid; gap: 7px; flex: 1 1 180px; }
+.matchup-picker label span { font-size: 10px; font-weight: 800; text-transform: uppercase; }
+.matchup-picker select { width: 100%; padding: 11px; border: 1px solid var(--gray-2); background: white; font-size: 15px; font-weight: 700; }
+.matchup-swap { padding: 12px 18px; border: 1px solid var(--black); background: var(--white); font-weight: 800; }
+.matchup-swap:hover { background: var(--black); color: white; }
+.matchup-meta { color: var(--gray-2); font-size: 11px; margin-bottom: 8px; }
+.matchup-warning { color: #a04b18; font-size: 11px; font-weight: bold; margin-bottom: 9px; }
+.matchup-warning:empty { display: none; }
+.matchup-method { margin-top: 14px; line-height: 1.65; }
+.matchup-comparison-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 22px; }
+.matchup-comparison-card { padding: 18px; border: 1px solid var(--gray-3); min-width: 0; }
+.matchup-comparison-card h3 { margin: 0 0 9px; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--gray-2); }
+.matchup-comparison-card > strong { display: block; min-height: 36px; font-size: 16px; line-height: 1.2; }
+.matchup-comparison-card small { display: block; color: var(--gray-2); margin-top: 8px; font-size: 10px; }
+.matchup-index-row { display: flex; justify-content: space-between; gap: 8px; margin: 17px 0 6px; font: bold 12px "Courier New", monospace; }
+.matchup-gap-rail { background: var(--gray-4); height: 5px; width: 100%; }
+.matchup-gap-rail > div { height: 100%; background: var(--black); }
+.matchup-panel-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 16px; margin: 26px 0; }
+.matchup-panel { min-width: 0; border: 1px solid var(--gray-3); padding: 18px; }
+.matchup-panel-heading { padding-bottom: 14px; border-bottom: 2px solid var(--black); }
+.matchup-panel-heading h2 { font-size: 20px; line-height: 1.2; margin: 0 0 5px; }
+.matchup-panel-heading h2 span { color: var(--gray-2); font-weight: 400; }
+.matchup-panel-heading p, .matchup-group-note { font-size: 11px; color: var(--gray-2); margin: 0; }
+.matchup-group-title { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; margin: 24px 0 8px; }
+.matchup-group-note { margin-bottom: 12px; }
+.matchup-metric { padding: 13px 0; border-bottom: 1px solid var(--gray-4); }
+.matchup-metric:last-child { border-bottom: 0; }
+.matchup-metric-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 6px; flex-wrap: wrap; }
+.matchup-metric-top h3 { margin: 0; font-size: 13px; }
+.matchup-detail { display: block; margin-top: 3px; color: var(--gray-2); font-size: 10px; }
+.matchup-signal { padding: 4px 6px; background: var(--gray-5); border: 1px solid var(--gray-4); text-align: right; font-size: 10px; font-weight: 700; }
+.matchup-signal.positive { color: #246143; border-color: #a8c7b4; }
+.matchup-signal.negative { color: #984b33; border-color: #d7aea3; }
+.matchup-unit-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
+.matchup-unit { min-width: 0; border: 1px solid var(--gray-4); padding: 10px; }
+.matchup-unit > span { display: block; font-size: 9px; text-transform: uppercase; color: var(--gray-2); font-weight: bold; }
+.matchup-unit strong { display: block; font: bold 20px "Courier New", monospace; margin: 6px 0; overflow-wrap: anywhere; }
+.matchup-unit small { display: block; font-size: 10px; color: var(--gray-1); }
+.matchup-metric-expectation { font-size: 11px; color: var(--gray-1); padding-top: 10px; }
+.matchup-metric.compact { padding: 10px 0; }
+.matchup-metric.compact .matchup-unit { border: 0; padding: 4px 0; }
+.matchup-metric.compact .matchup-unit strong { font-size: 15px; margin: 2px 0; }
+.matchup-metric.compact .matchup-unit-grid { margin-top: 5px; }
+.matchup-no-data { color: var(--gray-2); font-size: 11px; }
+@media (max-width: 900px) {
+  .matchup-comparison-grid { grid-template-columns: 1fr; }
+  .matchup-panel-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 500px) {
+  .matchup-picker { padding: 12px; }
+  .matchup-swap { width: 100%; }
+  .matchup-panel { padding: 12px; }
+  .matchup-metric-top { flex-direction: column; }
+  .matchup-unit strong { font-size: 17px; }
+}

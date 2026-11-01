@@ -68,6 +68,14 @@ def numeric(series: pd.Series) -> pd.Series:
     return pd.to_numeric(series, errors="coerce")
 
 
+def valid_pick(value: object, allowed: set[str]) -> str:
+    """Treat missing/invalid archived selections as no wager, not a loss."""
+    if value is None or pd.isna(value):
+        return ""
+    pick = str(value).strip()
+    return pick if pick in allowed else ""
+
+
 def load_report(path: Path) -> dict:
     if not path.exists():
         return {}
@@ -349,7 +357,8 @@ def grade_archives(
                 pd.Series([source.get("total_line")]), errors="coerce"
             ).iloc[0]
 
-            spread_pick = str(source.get("spread_pick", ""))
+            teams = {str(source.get("home_team")), str(source.get("away_team"))}
+            spread_pick = valid_pick(source.get("spread_pick"), teams)
             if pd.notna(spread_line) and spread_pick:
                 spread_delta = actual_margin - float(spread_line)
                 spread_result = result_from_delta(
@@ -359,7 +368,7 @@ def grade_archives(
             else:
                 spread_result = ""
 
-            total_pick = str(source.get("total_pick", ""))
+            total_pick = valid_pick(source.get("total_pick"), {"OVER", "UNDER"})
             if pd.notna(total_line) and total_pick:
                 total_delta = actual_total - float(total_line)
                 total_result = result_from_delta(
@@ -376,11 +385,11 @@ def grade_archives(
             else:
                 winner = str(source.get("away_team"))
 
-            ml_pick = str(source.get("moneyline_pick", ""))
-            if winner == "TIE":
-                ml_result = "P"
-            elif not ml_pick:
+            ml_pick = valid_pick(source.get("moneyline_pick"), teams)
+            if not ml_pick:
                 ml_result = ""
+            elif winner == "TIE":
+                ml_result = "P"
             else:
                 ml_result = "W" if ml_pick == winner else "L"
 

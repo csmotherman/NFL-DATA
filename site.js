@@ -1125,7 +1125,7 @@
   }
 
   function setRoute(route) {
-    const valid = ['week', 'stats', 'fantasy', 'props', 'history', 'model'];
+    const valid = ['week', 'stats', 'matchup', 'fantasy', 'props', 'history', 'model'];
     if (!valid.includes(route)) route = 'week';
 
     document.querySelectorAll('.page').forEach((page) => {

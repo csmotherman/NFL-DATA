@@ -81,4 +81,7 @@ test('deployment publishes the matchup source and navigation', () => {
   assert.ok(html.includes('src="matchup.js"'));
   assert.ok(site.includes('window.NFLMatchup.init'));
   assert.ok(site.includes('PATHS.teamState'));
+  // A tab in the markup is not navigable unless setRoute accepts its hash.
+  assert.match(site, /const valid = \[[^\]]*'matchup'/);
+  assert.ok(html.includes('href="#matchup" data-route="matchup"'));
 });

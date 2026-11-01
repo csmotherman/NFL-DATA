@@ -646,3 +646,8 @@ button {
   .matchup-metric-top { flex-direction: column; }
   .matchup-unit strong { font-size: 17px; }
 }
+
+/* Make the two-team scouting tab discoverable from the Week dashboard. */
+.week-matchup-link { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; padding: 12px 14px; margin-top: 18px; border: 1px solid var(--gray-3); background: var(--gray-5); font-size: 11px; }
+.week-matchup-link a { display: inline-block; background: var(--black); color: var(--white); font-size: 11px; font-weight: 700; padding: 9px 12px; text-decoration: none; }
+.week-matchup-link a:hover, .week-matchup-link a:focus-visible { background: var(--gray-1); outline: 2px solid var(--gray-2); }

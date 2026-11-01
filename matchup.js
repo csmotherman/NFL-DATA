@@ -106,6 +106,16 @@
     return 'Conflicting or average-strength signals; no clear efficiency mismatch.';
   }
 
+  function ordinal(value) {
+    if (value === null || !Number.isFinite(value)) return '—';
+    const rounded = Math.round(value);
+    const mod100 = rounded % 100;
+    const suffix = mod100 >= 11 && mod100 <= 13 ? 'th' :
+      rounded % 10 === 1 ? 'st' : rounded % 10 === 2 ? 'nd' :
+      rounded % 10 === 3 ? 'rd' : 'th';
+    return rounded + suffix;
+  }
+
   function formatValue(value, unit) {
     if (value === null || !Number.isFinite(value)) return '—';
     if (unit === 'epa') return (value > 0 ? '+' : '') + value.toFixed(3);
@@ -130,10 +140,10 @@
       '<div class="matchup-unit-grid">' +
         '<div class="matchup-unit"><span>' + escapeHtml(metric.offense) + ' offense</span>' +
           '<strong>' + formatValue(metric.offenseValue, metric.unit) + '</strong>' +
-          '<small>' + metric.offensePercentile.toFixed(0) + 'th favorability percentile · ' + signed(metric.offenseZ) + ' SD</small></div>' +
+          '<small>' + ordinal(metric.offensePercentile) + ' favorability percentile · ' + signed(metric.offenseZ) + ' SD</small></div>' +
         '<div class="matchup-unit"><span>' + escapeHtml(metric.defense) + ' defense</span>' +
           '<strong>' + formatValue(metric.defenseValue, metric.unit) + '</strong>' +
-          '<small>' + metric.defenseVulnerabilityPercentile.toFixed(0) + 'th susceptibility percentile · ' +
+          '<small>' + ordinal(metric.defenseVulnerabilityPercentile) + ' susceptibility percentile · ' +
           signed(metric.defenseVulnerabilityZ) + ' SD</small></div>' +
       '</div>' + headline + '</article>';
   }
@@ -249,6 +259,6 @@
   }
 
   return { EPA: EPA, CONTEXT: CONTEXT, number: number, distribution: distribution,
-    percentile: percentile, evaluate: evaluate, compare: compare, assessment: assessment,
+    percentile: percentile, ordinal: ordinal, evaluate: evaluate, compare: compare, assessment: assessment,
     expectation: expectation, defaultPair: defaultPair, init: init };
 });

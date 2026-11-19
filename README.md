@@ -152,3 +152,25 @@ Use the **Matchup** tab to select any two teams. Both directions are shown: Team
 For each split, compute a sample standard deviation and empirical midrank percentile across the available NFL teams, separately for offensive production and defensive production allowed. Reverse the sign for offensive sack/turnover rates and defensive sacks/takeaways, where lower opponent pressure is favorable to an offense. The matchup index = (offense league z-score + defense *susceptibility* league z-score) / 2. Side-to-side index gaps describe which offense has the relatively easier efficiency environment. Indices are **not** outcome probabilities, predicted yardage, projected final scores, or betting edges. Percentiles describe 32 teams, not probabilistic odds, and the opponent-adjusted EPA splits are regularized early in the season. A strength-vs-strength matchup can have a neutral composite index. If data are missing or have zero variance, the interface suppresses the edge instead of inventing one.
 
 The Matchup tab shares the weekly pipeline data refresh and is deployed by Vercel via `matchup.js`. `NFL Matchup Site Checks` runs independent JavaScript syntax and calculation tests on frontend changes.
+
+
+## Fantasy EPA strength of schedule (NFL 2026, fantasy playoffs Weeks 14-17)
+
+Run the NFL API-backed schedule screen after a fully completed week:
+
+```bash
+python src/fantasy_epa_sos.py --season 2026 --start-week 11 --playoff-start 14 --end-week 17 --output-dir outputs
+```
+
+This imports current-season completed team-game stats and the scheduled regular-season opponents using `nflreadpy.load_team_stats` and `nflreadpy.load_schedules`. It fits the same play-weighted **opponent-adjusted offense/defense two-way ridge** used by Team Stats separately for pass EPA per dropback and rush EPA per carry. The *recent* estimate reruns the entire opponent-adjusted model with exponential time-decay (**four-week half-life**), retaining schedule connectivity instead of assuming last-three-game *raw* defensive EPA is opponent adjusted.
+
+The SOS score blends **65% full-season adjusted defense EPA allowed** with **35% recent adjusted defense EPA allowed**. Higher is an easier opponent matchup. QB, WR and TE use the opposing defense's passing EPA **allowed**; RB uses rushing EPA **allowed**. These are team-level **schedule rankings**, not a player scoring forecast; targets, usage, injuries, pace, scoring settings, and TD opportunities are separate.
+
+Outputs (refreshed by the existing Thursday pipeline):
+
+- `outputs/fantasy_epa_defense.csv`: 32 defensive teams' overall, recent, blended adjusted pass/rush EPA allowed and susceptibility ranks.
+- `outputs/fantasy_epa_sos_weekly.csv`: per-team, per-position, per-week matchup rankings with the three EPA values.
+- `outputs/fantasy_epa_sos_team.csv`: pre-playoff, rest-of-season and **Weeks 14–17 fantasy-playoff** SOS rankings and actual opponents; `ease_rank_matchups_only` ranks matchup difficulty, while `rank_including_byes` puts teams with more playable games first.
+- `outputs/fantasy_epa_sos_report.json`: data freshness, methodology and model limitations.
+
+**Week-14 byes matter:** do not treat a favorable three-game playoff average as better than a four-game schedule. The script never invents an opponent for a bye, rejects future or unfinished game results, and advances the starting week as the season progresses. The old `fantasy_ros.py` Week-3-frozen Week-4-to-16 player model is a *separate historical backtest*; do not use its old SOS output for current Week-11 trade decisions.

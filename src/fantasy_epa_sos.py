@@ -42,6 +42,23 @@ def last_fully_completed_week(schedule: pd.DataFrame) -> int:
     return last
 
 
+
+def last_fully_ingested_week(schedule: pd.DataFrame, team_games: pd.DataFrame) -> int:
+    """Only use weeks with scores AND two team-game EPA rows for every game."""
+    completed = last_fully_completed_week(schedule)
+    if not {"game_id", "week", "team"}.issubset(team_games.columns):
+        raise ValueError("Team-game stats missing game_id, week or team")
+    sides = team_games.groupby(["week", "game_id"])["team"].nunique()
+    last = 0
+    for week in range(1, completed + 1):
+        expected = schedule[pd.to_numeric(schedule["week"], errors="coerce").eq(week)]["game_id"]
+        if expected.empty or any(sides.get((week, game_id), 0) != 2 for game_id in expected):
+            break
+        last = week
+    if not last:
+        raise ValueError("No complete week of NFL team EPA stats ingested")
+    return last
+
 def fit_defense_adjusted(
     games: pd.DataFrame,
     teams: list[str],
@@ -252,9 +269,10 @@ def main() -> None:
 
     games, schedule = load_live_data(args.season)
     completed = last_fully_completed_week(schedule)
-    asof = args.through_week if args.through_week is not None else completed
-    if asof > completed:
-        raise ValueError(f"Week {asof} is not fully complete; last complete week is {completed}")
+    ingested = last_fully_ingested_week(schedule, games)
+    asof = args.through_week if args.through_week is not None else ingested
+    if asof > ingested:
+        raise ValueError(f"Week {asof} is missing complete EPA stats; latest usable is {ingested}")
     start = max(args.start_week, asof + 1)
     if start > args.end_week:
         raise ValueError("No remaining games in specified date range")
@@ -271,6 +289,7 @@ def main() -> None:
     report = {
         "generated_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "season": args.season, "last_fully_completed_week": completed,
+        "last_fully_ingested_epa_week": ingested,
         "through_week": asof, "schedule_start_week": start,
         "playoff_start_week": playoff_start, "end_week": args.end_week,
         "source": "nflreadpy.load_team_stats and nflreadpy.load_schedules (nflverse)",

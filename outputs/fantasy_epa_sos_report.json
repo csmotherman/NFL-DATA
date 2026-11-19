@@ -1,0 +1,23 @@
+{
+  "generated_at_utc": "2026-11-19T03:05:02+00:00",
+  "season": 2026,
+  "last_fully_completed_week": 10,
+  "last_fully_ingested_epa_week": 10,
+  "through_week": 10,
+  "schedule_start_week": 11,
+  "playoff_start_week": 14,
+  "end_week": 17,
+  "source": "nflreadpy.load_team_stats and nflreadpy.load_schedules (nflverse)",
+  "method": "play-weighted two-way ridge offense/defense EPA, recency-weighted refit",
+  "ridge_alpha": 2.5,
+  "recent_half_life_weeks": 4.0,
+  "overall_weight": 0.65,
+  "recent_weight": 0.35,
+  "interpretation": "Higher defensive EPA allowed is easier for opposing fantasy QB/WR/TE (pass), RB (rush)",
+  "caveats": [
+    "Team-level opponent screen, not player-specific fantasy projections",
+    "Does not model usage, injuries, depth charts, red-zone work, target share, or fantasy-scoring rules",
+    "A bye has no matchup; rank_including_byes sorts playable-game count first",
+    "No leakage from unfinished games; recent weighted EPA is still opponent adjusted"
+  ]
+}

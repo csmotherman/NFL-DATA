@@ -1,17 +1,16 @@
 {
-  "generated_at_utc": "2026-11-12T22:42:33.096288+00:00",
+  "generated_at_utc": "2026-11-19T03:05:00.761684+00:00",
   "season": 2026,
-  "through_week": 9,
+  "through_week": 10,
   "remaining_weeks": [
-    10,
+    11,
     17
   ],
-  "rows": 445,
+  "rows": 463,
   "signals": {
-    "WATCH": 436,
-    "BUY_LOW": 6,
-    "INJURY_REVIEW": 2,
-    "SELL_HIGH": 1
+    "WATCH": 457,
+    "BUY_LOW": 4,
+    "INJURY_REVIEW": 2
   },
   "model_type": "player-specific historical empirical-Bayes skill + stable team-share volume + shrunk opponent adjustment",
   "limitations": [

@@ -80,7 +80,8 @@ def fit_defense_adjusted(
     ]
     if sample.empty:
         raise ValueError(f"No valid completed-game EPA data for {value_col}")
-    weights = sample[weight_col].to_numpy(dtype=float)
+    # pandas 3 can return a read-only NumPy view; decay must modify a copy.
+    weights = sample[weight_col].to_numpy(dtype=float, copy=True)
     if half_life is not None:
         if half_life <= 0:
             raise ValueError("Recent half-life must be positive")

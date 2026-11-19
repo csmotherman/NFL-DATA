@@ -6,7 +6,7 @@ from pathlib import Path
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from fantasy_epa_sos import calculate_defenses, build_schedules, last_fully_completed_week
+from fantasy_epa_sos import calculate_defenses, build_schedules, last_fully_completed_week, last_fully_ingested_week
 
 
 class FantasyEpaSosTests(unittest.TestCase):
@@ -81,6 +81,22 @@ class FantasyEpaSosTests(unittest.TestCase):
             {"week": 4, "home_score": None, "away_score": None},
         ])
         self.assertEqual(last_fully_completed_week(schedule), 2)
+
+    def test_uses_latest_week_with_complete_epa_stats(self):
+        schedule = pd.DataFrame([
+            {"week": 1, "game_id": "w1a", "home_score": 21., "away_score": 10.},
+            {"week": 2, "game_id": "w2a", "home_score": 24., "away_score": 17.},
+            {"week": 3, "game_id": "w3a", "home_score": 24., "away_score": 17.},
+        ])
+        games = pd.DataFrame([
+            {"week": 1, "game_id": "w1a", "team": "A"},
+            {"week": 1, "game_id": "w1a", "team": "B"},
+            {"week": 2, "game_id": "w2a", "team": "A"},
+            {"week": 2, "game_id": "w2a", "team": "B"},
+            {"week": 3, "game_id": "w3a", "team": "A"},
+        ])
+        self.assertEqual(last_fully_completed_week(schedule), 3)
+        self.assertEqual(last_fully_ingested_week(schedule, games), 2)
 
     def test_duplicate_schedule_rows_fail(self):
         defense = calculate_defenses(self.games, self.teams, 10)

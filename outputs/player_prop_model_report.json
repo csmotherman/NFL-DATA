@@ -1,7 +1,7 @@
 {
-  "generated_at_utc": "2026-11-19T23:27:16+00:00",
+  "generated_at_utc": "2026-11-26T13:33:52+00:00",
   "season": 2026,
-  "target_week": 11,
+  "target_week": 12,
   "training_start_season": 2018,
   "short_window_games": 3,
   "long_window_games": 6,
@@ -13,28 +13,28 @@
       "seasons": {
         "2023": {
           "games": 592,
-          "model_mae": 8.263,
+          "model_mae": 8.236,
           "baseline_mae": 8.424,
-          "blended_mae": 8.263
+          "blended_mae": 8.236
         },
         "2024": {
           "games": 584,
-          "model_mae": 7.827,
+          "model_mae": 7.872,
           "baseline_mae": 8.599,
-          "blended_mae": 7.827
+          "blended_mae": 7.872
         },
         "2025": {
           "games": 584,
-          "model_mae": 7.752,
+          "model_mae": 7.767,
           "baseline_mae": 8.593,
-          "blended_mae": 7.752
+          "blended_mae": 7.767
         }
       },
-      "model_mae": 7.949,
+      "model_mae": 7.96,
       "baseline_mae": 8.538,
       "optimal_model_weight": 1.0,
-      "blended_mae": 7.949,
-      "residual_sd": 10.232,
+      "blended_mae": 7.96,
+      "residual_sd": 10.226,
       "model_beats_baseline": true
     },
     "completions": {
@@ -44,28 +44,28 @@
       "seasons": {
         "2023": {
           "games": 592,
-          "model_mae": 5.694,
+          "model_mae": 5.674,
           "baseline_mae": 5.898,
-          "blended_mae": 5.694
+          "blended_mae": 5.674
         },
         "2024": {
           "games": 584,
-          "model_mae": 5.392,
+          "model_mae": 5.368,
           "baseline_mae": 5.822,
-          "blended_mae": 5.392
+          "blended_mae": 5.368
         },
         "2025": {
           "games": 584,
-          "model_mae": 5.273,
+          "model_mae": 5.277,
           "baseline_mae": 5.948,
-          "blended_mae": 5.273
+          "blended_mae": 5.277
         }
       },
-      "model_mae": 5.454,
+      "model_mae": 5.441,
       "baseline_mae": 5.889,
       "optimal_model_weight": 1.0,
-      "blended_mae": 5.454,
-      "residual_sd": 6.956,
+      "blended_mae": 5.441,
+      "residual_sd": 6.943,
       "model_beats_baseline": true
     },
     "passing_yards": {
@@ -75,28 +75,28 @@
       "seasons": {
         "2023": {
           "games": 592,
-          "model_mae": 68.164,
+          "model_mae": 68.039,
           "baseline_mae": 71.105,
-          "blended_mae": 68.164
+          "blended_mae": 68.039
         },
         "2024": {
           "games": 584,
-          "model_mae": 64.223,
+          "model_mae": 64.284,
           "baseline_mae": 70.629,
-          "blended_mae": 64.223
+          "blended_mae": 64.284
         },
         "2025": {
           "games": 584,
-          "model_mae": 64.969,
+          "model_mae": 65.499,
           "baseline_mae": 72.125,
-          "blended_mae": 64.969
+          "blended_mae": 65.499
         }
       },
-      "model_mae": 65.796,
+      "model_mae": 65.95,
       "baseline_mae": 71.286,
       "optimal_model_weight": 1.0,
-      "blended_mae": 65.796,
-      "residual_sd": 82.801,
+      "blended_mae": 65.95,
+      "residual_sd": 83.125,
       "model_beats_baseline": true
     },
     "rush_attempts": {
@@ -106,28 +106,28 @@
       "seasons": {
         "2023": {
           "games": 1726,
-          "model_mae": 3.346,
+          "model_mae": 3.341,
           "baseline_mae": 3.451,
-          "blended_mae": 3.342
+          "blended_mae": 3.339
         },
         "2024": {
           "games": 1704,
-          "model_mae": 3.31,
+          "model_mae": 3.304,
           "baseline_mae": 3.397,
-          "blended_mae": 3.297
+          "blended_mae": 3.295
         },
         "2025": {
           "games": 1658,
-          "model_mae": 3.223,
+          "model_mae": 3.221,
           "baseline_mae": 3.353,
-          "blended_mae": 3.22
+          "blended_mae": 3.218
         }
       },
-      "model_mae": 3.294,
+      "model_mae": 3.289,
       "baseline_mae": 3.401,
-      "optimal_model_weight": 0.8,
-      "blended_mae": 3.287,
-      "residual_sd": 4.388,
+      "optimal_model_weight": 0.85,
+      "blended_mae": 3.285,
+      "residual_sd": 4.384,
       "model_beats_baseline": true
     },
     "rushing_yards": {
@@ -137,28 +137,28 @@
       "seasons": {
         "2023": {
           "games": 1726,
-          "model_mae": 18.841,
+          "model_mae": 18.887,
           "baseline_mae": 19.552,
-          "blended_mae": 18.804
+          "blended_mae": 18.849
         },
         "2024": {
           "games": 1704,
-          "model_mae": 20.276,
+          "model_mae": 20.252,
           "baseline_mae": 20.828,
-          "blended_mae": 20.226
+          "blended_mae": 20.214
         },
         "2025": {
           "games": 1658,
-          "model_mae": 19.874,
+          "model_mae": 19.915,
           "baseline_mae": 20.922,
-          "blended_mae": 19.876
+          "blended_mae": 19.905
         }
       },
-      "model_mae": 19.658,
+      "model_mae": 19.679,
       "baseline_mae": 20.426,
       "optimal_model_weight": 0.85,
-      "blended_mae": 19.63,
-      "residual_sd": 26.803,
+      "blended_mae": 19.65,
+      "residual_sd": 26.798,
       "model_beats_baseline": true
     },
     "receptions": {
@@ -168,21 +168,21 @@
       "seasons": {
         "2023": {
           "games": 3739,
-          "model_mae": 1.467,
+          "model_mae": 1.468,
           "baseline_mae": 1.537,
-          "blended_mae": 1.467
+          "blended_mae": 1.468
         },
         "2024": {
           "games": 3661,
-          "model_mae": 1.511,
+          "model_mae": 1.51,
           "baseline_mae": 1.565,
-          "blended_mae": 1.511
+          "blended_mae": 1.51
         },
         "2025": {
           "games": 3642,
-          "model_mae": 1.452,
+          "model_mae": 1.453,
           "baseline_mae": 1.521,
-          "blended_mae": 1.452
+          "blended_mae": 1.453
         }
       },
       "model_mae": 1.477,
@@ -199,28 +199,28 @@
       "seasons": {
         "2023": {
           "games": 3739,
-          "model_mae": 19.861,
+          "model_mae": 19.868,
           "baseline_mae": 20.993,
-          "blended_mae": 19.861
+          "blended_mae": 19.868
         },
         "2024": {
           "games": 3661,
-          "model_mae": 19.872,
+          "model_mae": 19.857,
           "baseline_mae": 20.915,
-          "blended_mae": 19.872
+          "blended_mae": 19.857
         },
         "2025": {
           "games": 3642,
-          "model_mae": 19.547,
+          "model_mae": 19.565,
           "baseline_mae": 20.625,
-          "blended_mae": 19.547
+          "blended_mae": 19.565
         }
       },
-      "model_mae": 19.761,
+      "model_mae": 19.764,
       "baseline_mae": 20.846,
       "optimal_model_weight": 1.0,
-      "blended_mae": 19.761,
-      "residual_sd": 26.765,
+      "blended_mae": 19.764,
+      "residual_sd": 26.772,
       "model_beats_baseline": true
     }
   },

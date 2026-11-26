@@ -1,14 +1,14 @@
 {
-  "generated_at_utc": "2026-11-19T23:26:28+00:00",
+  "generated_at_utc": "2026-11-26T13:32:37+00:00",
   "integrity_note": "Forward records only. Weeks are locked before any target-week game has a final score; retroactive reruns are never graded.",
   "spread_qualified": {
-    "decisions": 18,
-    "wins": 11,
+    "decisions": 20,
+    "wins": 13,
     "losses": 7,
     "pushes": 1,
-    "hit_rate": 0.6111,
-    "profit_units": 3.066,
-    "roi_per_bet": 0.1614
+    "hit_rate": 0.65,
+    "profit_units": 4.911,
+    "roi_per_bet": 0.2339
   },
   "total_qualified": {
     "decisions": 0,

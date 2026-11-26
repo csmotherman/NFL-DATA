@@ -1,64 +1,64 @@
 {
-  "generated_at_utc": "2026-11-19T23:27:40.223378+00:00",
+  "generated_at_utc": "2026-11-26T13:34:30.329207+00:00",
   "folds": [
     {
       "season": 2024,
       "position": "RB",
-      "players": 93,
-      "model_mae": 2.7541,
-      "season_ppr_baseline_mae": 2.7872,
-      "model_bias": 0.2627,
-      "model_spearman": 0.8197
+      "players": 94,
+      "model_mae": 2.7265,
+      "season_ppr_baseline_mae": 2.7608,
+      "model_bias": 0.2575,
+      "model_spearman": 0.8238
     },
     {
       "season": 2024,
       "position": "TE",
       "players": 70,
-      "model_mae": 2.2543,
+      "model_mae": 2.2534,
       "season_ppr_baseline_mae": 2.2678,
-      "model_bias": -1.002,
-      "model_spearman": 0.7961
+      "model_bias": -1.0005,
+      "model_spearman": 0.797
     },
     {
       "season": 2024,
       "position": "WR",
       "players": 135,
-      "model_mae": 3.0156,
+      "model_mae": 3.0166,
       "season_ppr_baseline_mae": 2.8296,
-      "model_bias": -0.2043,
-      "model_spearman": 0.7308
+      "model_bias": -0.2024,
+      "model_spearman": 0.7306
     },
     {
       "season": 2025,
       "position": "RB",
       "players": 88,
-      "model_mae": 2.6013,
+      "model_mae": 2.6014,
       "season_ppr_baseline_mae": 2.7192,
-      "model_bias": -0.1082,
+      "model_bias": -0.1079,
       "model_spearman": 0.846
     },
     {
       "season": 2025,
       "position": "TE",
       "players": 79,
-      "model_mae": 1.9215,
+      "model_mae": 1.9211,
       "season_ppr_baseline_mae": 2.1775,
-      "model_bias": -0.4495,
-      "model_spearman": 0.8355
+      "model_bias": -0.449,
+      "model_spearman": 0.8353
     },
     {
       "season": 2025,
       "position": "WR",
       "players": 144,
-      "model_mae": 2.4799,
+      "model_mae": 2.4808,
       "season_ppr_baseline_mae": 2.7325,
-      "model_bias": 0.1484,
+      "model_bias": 0.1497,
       "model_spearman": 0.8081
     }
   ],
-  "total_players_season_rows": 609,
-  "model_mae": 2.5597,
-  "season_ppr_baseline_mae": 2.635,
+  "total_players_season_rows": 610,
+  "model_mae": 2.5561,
+  "season_ppr_baseline_mae": 2.6312,
   "beats_season_baseline": true,
   "method": "Week-6 cutoff; prior years only as skill priors; compare Weeks 7-17 realized per active game",
   "limitations": [

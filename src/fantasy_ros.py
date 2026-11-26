@@ -24,6 +24,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import nflreadpy as nfl
+from schedule_loader import load_nflverse_schedules
 import numpy as np
 import pandas as pd
 from sklearn.metrics import mean_absolute_error
@@ -114,7 +115,7 @@ def load_inputs(seasons: list[int]) -> tuple[pd.DataFrame, pd.DataFrame]:
     ).to_pandas()
 
     print("Loading schedules...")
-    schedules = nfl.load_schedules(seasons).to_pandas()
+    schedules = load_nflverse_schedules(seasons).to_pandas()
 
     if "season_type" in players.columns:
         players = players[players["season_type"].eq("REG")].copy()

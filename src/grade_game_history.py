@@ -17,6 +17,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import nflreadpy as nfl
+from schedule_loader import load_nflverse_schedules
 
 
 ODDS_COLUMNS = [
@@ -86,7 +87,7 @@ def load_report(path: Path) -> dict:
 def load_schedules(seasons: list[int]) -> pd.DataFrame:
     if not seasons:
         return pd.DataFrame()
-    schedules = nfl.load_schedules(sorted(set(seasons))).to_pandas()
+    schedules = load_nflverse_schedules(sorted(set(seasons))).to_pandas()
     if "game_type" in schedules.columns:
         schedules = schedules[schedules["game_type"].eq("REG")].copy()
 

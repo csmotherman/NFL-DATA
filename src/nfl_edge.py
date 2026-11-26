@@ -32,6 +32,7 @@ from typing import Iterable
 import numpy as np
 import pandas as pd
 import nflreadpy as nfl
+from schedule_loader import load_nflverse_schedules
 from nflreadpy.config import update_config
 
 from sklearn.ensemble import HistGradientBoostingRegressor
@@ -120,7 +121,7 @@ def load_data(seasons: list[int]) -> tuple[pd.DataFrame, pd.DataFrame]:
     stats = nfl.load_team_stats(seasons=seasons).to_pandas()
 
     print("Loading schedules...")
-    schedules = nfl.load_schedules(seasons).to_pandas()
+    schedules = load_nflverse_schedules(seasons).to_pandas()
 
     if "season_type" in stats.columns:
         stats = stats[stats["season_type"].eq("REG")].copy()

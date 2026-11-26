@@ -244,9 +244,10 @@ def build_schedules(
 
 def load_live_data(season: int) -> tuple[pd.DataFrame, pd.DataFrame]:
     import nflreadpy as nfl
+    from schedule_loader import load_nflverse_schedules
     from nfl_edge import build_team_game_stats, normalize_schedule
     stats = nfl.load_team_stats(seasons=[season]).to_pandas()
-    schedules = nfl.load_schedules([season]).to_pandas()
+    schedules = load_nflverse_schedules([season]).to_pandas()
     if "season_type" in stats:
         stats = stats[stats["season_type"].eq("REG")].copy()
     if "game_type" in schedules:

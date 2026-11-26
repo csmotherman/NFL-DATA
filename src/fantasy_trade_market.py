@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import nflreadpy as nfl
+from schedule_loader import load_nflverse_schedules
 import numpy as np
 import pandas as pd
 
@@ -163,7 +164,7 @@ def defense_offsets(players: pd.DataFrame) -> dict[str, dict[str, float]]:
 
 
 def future_schedule(season: int, through_week: int, end_week: int) -> dict[str, list[tuple[int, str]]]:
-    s = nfl.load_schedules([season]).to_pandas()
+    s = load_nflverse_schedules([season]).to_pandas()
     if "game_type" in s:
         s = s[s["game_type"].eq("REG")]
     s = s[
